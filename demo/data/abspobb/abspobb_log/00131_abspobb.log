@@ -1,0 +1,223 @@
+
+		XSPEC version: 12.13.1
+	Build Date/Time: Fri Sep  8 17:17:54 2023
+
+XSPEC12>model tbabs*(clumin*zpowerlw+const*clumin*zbbody)
+
+Input parameter value, delta, min, bot, top, and max values for ...
+              1      0.001(      0.01)          0          0     100000      1e+06
+1:TBabs:nH>
+            0.5       -0.1(     0.005)          0          0      1e+06      1e+06
+2:clumin:Emin>
+             10       -0.1(       0.1)          0          0      1e+06      1e+06
+3:clumin:Emax>
+              0      -0.01(      0.01)     -0.999     -0.999         10         10
+4:clumin:Redshift>
+             40       0.01(       0.4)       -100       -100        100        100
+5:clumin:lg10Lum>
+              1       0.01(      0.01)         -3         -2          9         10
+6:zpowerlw:PhoIndex>
+              0      -0.01(      0.01)     -0.999     -0.999         10         10
+7:zpowerlw:Redshift>
+              1       0.01(      0.01)          0          0      1e+20      1e+24
+8:zpowerlw:norm>
+              1       0.01(      0.01)          0          0      1e+10      1e+10
+9:constant:factor>
+            0.5       -0.1(     0.005)          0          0      1e+06      1e+06
+10:clumin:Emin>
+             10       -0.1(       0.1)          0          0      1e+06      1e+06
+11:clumin:Emax>
+              0      -0.01(      0.01)     -0.999     -0.999         10         10
+12:clumin:Redshift>
+             40       0.01(       0.4)       -100       -100        100        100
+13:clumin:lg10Lum>
+              3       0.01(      0.03)     0.0001       0.01        100        200
+14:zbbody:kT>
+              0      -0.01(      0.01)     -0.999     -0.999         10         10
+15:zbbody:Redshift>
+              1       0.01(      0.01)          0          0      1e+20      1e+24
+16:zbbody:norm>
+
+========================================================================
+Model TBabs<1>(clumin<2>*zpowerlw<3> + constant<4>*clumin<5>*zbbody<6>) Source No.: 1   Active/Off
+Model Model Component  Parameter  Unit     Value
+ par  comp
+   1    1   TBabs      nH         10^22    1.00000      +/-  0.0          
+   2    2   clumin     Emin       keV      0.500000     frozen
+   3    2   clumin     Emax       keV      10.0000      frozen
+   4    2   clumin     Redshift            0.0          frozen
+   5    2   clumin     lg10Lum    cgs      40.0000      +/-  0.0          
+   6    3   zpowerlw   PhoIndex            1.00000      +/-  0.0          
+   7    3   zpowerlw   Redshift            0.0          frozen
+   8    3   zpowerlw   norm                1.00000      +/-  0.0          
+   9    4   constant   factor              1.00000      +/-  0.0          
+  10    5   clumin     Emin       keV      0.500000     frozen
+  11    5   clumin     Emax       keV      10.0000      frozen
+  12    5   clumin     Redshift            0.0          frozen
+  13    5   clumin     lg10Lum    cgs      40.0000      +/-  0.0          
+  14    6   zbbody     kT         keV      3.00000      +/-  0.0          
+  15    6   zbbody     Redshift            0.0          frozen
+  16    6   zbbody     norm                1.00000      +/-  0.0          
+________________________________________________________________________
+
+tbvabs Version 2.3
+Cosmic absorption with grains and H2, modified from
+Wilms, Allen, & McCray, 2000, ApJ 542, 914-924
+Questions: Joern Wilms
+joern.wilms@sternwarte.uni-erlangen.de
+joern.wilms@fau.de
+
+http://pulsar.sternwarte.uni-erlangen.de/wilms/research/tbabs/
+
+PLEASE NOTICE:
+To get the model described by the above paper
+you will also have to set the abundances:
+   abund wilm
+
+Note that this routine ignores the current cross section setting
+as it always HAS to use the Verner cross sections as a baseline.
+XSPEC12>
+XSPEC12>
+XSPEC12>newpar 1 0.01944658095278845
+XSPEC12>newpar 3 2
+XSPEC12>newpar 4 1.9483127721434468
+XSPEC12>newpar 5 45.25152781713524
+XSPEC12>newpar 6 1.933596658639923
+XSPEC12>newpar 7 1.9483127721434468
+XSPEC12>newpar 8 1 -1
+XSPEC12>newpar 9 0.16725445349012633
+XSPEC12>newpar 11 2
+XSPEC12>newpar 12 1.9483127721434468
+XSPEC12>newpar 13=5
+XSPEC12>newpar 14 0.1
+XSPEC12>newpar 15 1.9483127721434468
+XSPEC12>newpar 16 1 -1
+XSPEC12>show
+
+XSPEC version: 12.13.1
+
+Tue Jul 30 22:17:06 2024
+ Auto-saving is done after every command.
+ Minimization technique: Levenberg-Marquardt
+    Convergence criterion = 0.01
+    Parameter fit deltas: 0.01 * parValue
+Using chain rule to calculate statistic derivatives (faster method).
+ Querying enabled.
+ Prefit-renorming enabled.
+ Solar abundance table: angr
+ Photoionization Cross-Section Table:
+    vern:  Verner, Ferland, Korista, and Yakovlev 1996
+ Cosmology in use: H0 = 70 q0 = 0 Lambda0 = 0.73
+ Model data directory: /home/software/heasoft/heasoft-6.32.1/x86_64-pc-linux-gnu-libc2.17/../spectral/manager/../modelData/
+ Plot settings:
+   Showing of individual additive components is OFF.
+   Showing of background spectra is OFF.
+   Effective area normalization is OFF.
+   Current unit settings:
+      Energy     = keV
+      Wavelength = angstrom, with Y-Axis displayed per Hz
+   X-Axis data display mode: Channels
+   Spectra plots will be shifted to source frame by redshift value z: 0
+   Device: /null
+   Plotting of line IDs is OFF.
+   Splashpage is ON.
+   xlog for data plots is ON.
+   ylog for data plots is OFF.
+
+   Default plot rebin settings for all plot groups:
+   Min. Signif.   Max. # Bins   Error Type
+        0.00000             1         quad
+
+ Responses read:  none 
+
+ No Spectra defined.
+
+Current model list:
+
+========================================================================
+Model TBabs<1>(clumin<2>*zpowerlw<3> + constant<4>*clumin<5>*zbbody<6>) Source No.: 1   Active/Off
+Model Model Component  Parameter  Unit     Value
+ par  comp
+   1    1   TBabs      nH         10^22    1.94466E-02  +/-  0.0          
+   2    2   clumin     Emin       keV      0.500000     frozen
+   3    2   clumin     Emax       keV      2.00000      frozen
+   4    2   clumin     Redshift            1.94831      frozen
+   5    2   clumin     lg10Lum    cgs      45.2515      +/-  0.0          
+   6    3   zpowerlw   PhoIndex            1.93360      +/-  0.0          
+   7    3   zpowerlw   Redshift            1.94831      frozen
+   8    3   zpowerlw   norm                1.00000      frozen
+   9    4   constant   factor              0.167254     +/-  0.0          
+  10    5   clumin     Emin       keV      0.500000     frozen
+  11    5   clumin     Emax       keV      2.00000      frozen
+  12    5   clumin     Redshift            1.94831      frozen
+  13    5   clumin     lg10Lum    cgs      45.2515      = p5
+  14    6   zbbody     kT         keV      0.100000     +/-  0.0          
+  15    6   zbbody     Redshift            1.94831      frozen
+  16    6   zbbody     norm                1.00000      frozen
+________________________________________________________________________
+
+   Using energies from responses.
+No active models
+
+Bayes is off
+
+XSPEC12>
+XSPEC12>data /data/chensj/eROSITA/Xstack_new/demo/data/sample.src
+
+1 spectrum  in use
+ 
+Spectral Data File: /data/chensj/eROSITA/Xstack_new/demo/data/sample.src  Spectrum 1
+Net count rate (cts/s) for Spectrum:1  8.157e-01 +/- 1.679e-02 (92.9 % total)
+ Assigned to Data Group 1 and Plot Group 1
+  Noticed Channels:  1-1024
+  Telescope: eROSITA Instrument: MERGED  Channel Type: PI
+  Exposure Time: 3120 sec
+ Using fit statistic: chi
+ Using Background File                sample.bkg
+  Background Exposure Time: 3120 sec
+ Using Response (RMF) File            sample.rmf for Source 1
+ Using Auxiliary Response (ARF) File  sample.arf
+
+
+Fit statistic  : Chi-Squared                 5957.23     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                 5957.23     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1019 degrees of freedom
+ Current data and model not fit yet.
+XSPEC12>
+XSPEC12>xset seed 131
+
+Random number generator has been re-initialized with seed = 131
+
+XSPEC12>
+XSPEC12>fakeit
+ Use counting statistics in creating fake data? (y): 
+ Input optional fake file prefix: 
+ Fake data file name (sample.fak): 00131_abspobb.fak
+ Exposure time, correction norm, bkg exposure time (3119.78, 1.00000, 3119.78):  2000,1,2000
+
+1 spectrum  in use
+ 
+
+Fit statistic  : Chi-Squared                12907.95     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                12907.95     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1019 degrees of freedom
+ Current data and model not fit yet.
+XSPEC12>
+XSPEC12>exit
+ XSPEC: quit

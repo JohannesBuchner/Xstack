@@ -1,0 +1,137 @@
+import os 
+import sys
+
+spec_pha = sys.argv[1]
+spec_xcm = sys.argv[2]
+spec_log = sys.argv[3]
+step_dir = sys.argv[4]
+step_pre = sys.argv[5]
+parameter = sys.argv[6]
+
+#os.system('rm -rf %s'%(step_dir))
+#os.system('mkdir -p %s'%(step_dir))
+
+
+def write_sh(x1,x2,times):
+	shell_file = open('%s/%s_%s_%s_%s_%s.sh'%(step_dir, step_pre, parameter, x1, x2, times), 'w')
+	shell_file.writelines('shpwd=$PWD\n')
+	shell_file.writelines('cd %s\n' % (spec_pha))
+	shell_file.writelines('(\n')
+	shell_file.writelines('echo @%s\n'%(spec_xcm))
+	shell_file.writelines('echo thaw %s\n'%(parameter))
+	shell_file.writelines('echo fit 100\n')
+#	shell_file.writelines('echo parallel step 20\n')
+	shell_file.writelines('echo step %s %s %s %s\n'%(parameter,x1,x2,times))
+	shell_file.writelines('echo\n'+'echo\n'+'echo\n')
+	shell_file.writelines('echo exit) | xspec\n')
+	shell_file.writelines('cd $shpwd\n')
+	shell_file.close()
+
+def read_file(name):
+	j = 1
+	out_file = open('%s/%s.out' % (step_dir, name))
+	content = out_file.readlines()
+	out_file.close()
+	chi = []
+	xvalue = []
+	for i in range(len(content)):
+		if 'A new best fit was found' in content[i]:
+			os.system('mkdir %s/new_fit_flag'%(step_dir))
+			os.system('touch %s/new_fit_flag/%s_%s_%s'%(step_dir, step_pre, parameter))
+			os._exit(1)
+	for i in range(len(content)):
+		if 'step %s ' % (parameter) in content[i]:
+			j = i
+	for i in range(j-1,len(content)):
+		if len(content[i].split()) == 4:
+			if len(content[i].split()[2]) == 1:
+				if content[i].split()[2].isdigit():
+					chi.append(float(content[i].split()[1]))
+					xvalue.append(float(content[i].split()[3]))
+	return [xvalue,chi]
+
+
+def get_one_parameter(x1, x2, lowerflag=1):
+	#cutoff_result = open('step_out_new6/%s/cutoff.out' % (ID),'w')
+	k = 6
+	# x1 = 200 ;x2 =2 * x
+	#x1 = 100; x2 =200
+	while k:
+		write_sh(x1,x2,1)
+		tmp = '%s_%s_%s_%s_%s'%(step_pre,parameter,x1,x2,1)
+		tmp_command = 'sh %s/%s.sh > %s/%s.out'%(step_dir,tmp,step_dir,tmp)
+		os.system(tmp_command)
+		chi = read_file(tmp)[1]
+		#if chi[-1] < chi[0]:
+		if lowerflag:
+			if chi[-1] > 2.71:
+				x1 = x1 * 2
+				x2 = x2 * 2
+				k -= 1
+			elif chi[0] < 2.71:
+				x1 = x1 / 2
+				x2 = x2 / 2
+				k -= 1
+			else:
+				k = 0
+		else:
+			if chi[-1] < 2.71:
+				x1 = x1 * 2
+				x2 = x2 * 2
+				k -= 1
+			elif chi[0] > 2.71:
+				x1 = x1 / 2
+				x2 = x2 / 2
+				k -= 1
+			else:
+				k = 0
+
+	write_sh(x1, x2, 5)
+	tmp = '%s_%s_%s_%s_%s' % (step_pre, parameter , x1, x2,5)
+	tmp_command = 'sh %s/%s.sh > %s/%s.out' % (step_dir, tmp, step_dir, tmp)
+	os.system(tmp_command)
+	chi = read_file(tmp)[1]
+	xvalue = read_file(tmp)[0]
+
+	resultout = open('%s/%s_%s_result.txt' % (step_dir, step_pre, parameter), 'w')
+	flag_result = 0
+	for i in range(len(xvalue)-1):
+		if (chi[i]-2.71)*(chi[i+1]-2.71) < 0:
+			result = (xvalue[i+1]-xvalue[i])/(chi[i+1]-chi[i])*(2.71-chi[i])+xvalue[i]
+			resultout.writelines('%s \n' % result )
+			flag_result += 1
+	if flag_result == 0:
+		resultout.writelines('%s \n'%xvalue[0])
+	resultout.close()
+	
+
+if int(parameter) == 12:
+	# ecut of zcutoffpl
+	err_line = !grep -E '\s+{parameter}.*\(' {spec_log}
+	flag = 0
+	try:
+		err_line = err_line[-1]
+	except Exception as e:
+		err_line = '0 0 0 0'
+		flag = 1
+	err_line_split = err_line.split()
+	try:
+		err_line_split.remove('#') # some spec_log may automatically start with '#'
+	except Exception as e:
+		pass # for spec_log that does not start with '#', just ignore this step
+	eclo = float(err_line_split[1])
+	echi = float(err_line_split[2])
+	try:
+		ec = eclo - float(err_line_split[3].split(',')[0].split('(')[1])
+	except Exception as e:
+		ec = 'NEEDS MANUAL CHECK'
+	if (eclo==0) | (echi==0) | (flag==1):
+		# ecut unconstrained sources (po-like): record the lower limit
+		get_one_parameter(5,10,lowerflag=1)
+		#os.system('touch %s/UNCONSTRAINED'%step_dir)
+	else:
+		# ecut constrained sources (bb-like): record the best-fit value
+		resultout = open('%s/%s_%s_result.txt' % (step_dir, step_pre, parameter), 'w')
+		resultout.writelines('%s\n'%ec)
+		#os.system('touch %s/CONSTRAINED'%step_dir)
+		
