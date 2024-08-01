@@ -8,4 +8,4 @@ cd Xstack
 pip install .
 ```
 
-View `./demo/demo.ipynb` for a quick walk-through of Xstack!
+View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through of Xstack!
