@@ -38,7 +38,7 @@ def shift_arf(arf_file,z,nh_file=None,nh=1e20):
     '''
 
     with fits.open(arf_file) as hdu:
-        arf = hdu[1].data    # SPECRESP extension
+        arf = hdu['SPECRESP'].data
     arfene_lo = arf['ENERG_LO']
     arfene_hi = arf['ENERG_HI']
     arfene_ce = (arfene_lo + arfene_hi) / 2
@@ -163,7 +163,7 @@ def add_arf(specresp_lst,pha_lst,z_lst,bkgpha_lst=None,bkgscal_lst=None,ene_lo=N
     
     if fits_name is not None:
         with fits.open(sample_arf) as hdu:
-            arf = hdu[1].data
+            arf = hdu['SPECRESP'].data
         arfene_lo = arf['ENERG_LO']
         arfene_hi = arf['ENERG_HI']
         
@@ -203,7 +203,7 @@ def add_arf(specresp_lst,pha_lst,z_lst,bkgpha_lst=None,bkgscal_lst=None,ene_lo=N
         hdu_flag.header['FLAG'] = 'whether the bin is used for ARFSCAL estimation'
         hdulist.append(hdu_flag)
         
-        hdulist.writeto('%s'%(fits_name), overwrite=True)
+        hdulist.writeto(fits_name, overwrite=True)
         
     return sum_specresp
 

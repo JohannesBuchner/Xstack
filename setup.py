@@ -16,4 +16,5 @@ setup(
         'tqdm',
         'sfdmap',
     ],
+    package_data={'': ['**/tbabs_1e20.txt']},
 )

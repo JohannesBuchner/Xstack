@@ -8,7 +8,7 @@ from astropy.cosmology import Planck18
 import sfdmap
 from matplotlib import pyplot as plt
 from scipy.interpolate import RegularGridInterpolator
-from shift_arf import align_arf
+from .shift_arf import align_arf
 
 
 #===================================================
@@ -41,8 +41,8 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
             raise Exception('Please specify `eelo` and `eehi` in method `EDGE`!')
         # find channel energy in EBOUNDS extension of RMF file
         with fits.open(src_name) as hdu:
-            data = hdu[1].data
-            head = hdu[1].header
+            data = hdu['EBOUNDS'].data
+            head = hdu['EBOUNDS'].header
             chan = data['CHANNEL']
             try:
                 src_rmf = head['RESPFILE']
@@ -58,7 +58,7 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
             raise Exception('Either the RMF file is not specified as `rmf_file`, or the one in %s does not exist!'%src_name)
         
         with fits.open(rmf_file) as hdu:
-            ebo = hdu[2].data
+            ebo = hdu['EBOUNDS'].data
         ene_lo = ebo['E_MIN']
         ene_hi = ebo['E_MAX']
         ene_ce = (ene_lo + ene_hi) / 2
@@ -88,7 +88,7 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
         # for Windows system, uncomment the line below (also remember to change `/` to `\`)
         #os.system('copy %s %s'%(src_name,grp_name))
         with fits.open(grp_name,mode='update') as hdu:
-            SPECTRUM = hdu[1]
+            SPECTRUM = hdu['SPECTRUM']
             if 'GROUPING' in SPECTRUM.columns.names:
                 SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
             GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
@@ -421,8 +421,8 @@ def view_rmf(rmf_file,fig_name,n_grid_i=1000,n_grid=1000):
     None.
     '''
     with fits.open(rmf_file) as hdu:
-        rmf = hdu[1].data # `MATRIX` extension, determine the input (=arf) energy bin (ENERG_LO,ENERG_HI)
-        ebo = hdu[2].data # `EBOUNDS` extension, determine the output (channel) energy bin (E_MIN,E_MAX)
+        rmf = hdu['MATRIX'].data # to determine the input (=arf) energy bin (ENERG_LO,ENERG_HI)
+        ebo = hdu['EBOUNDS'].data # to determine the output (channel) energy bin (E_MIN,E_MAX)
     
     iene_lo = rmf['ENERG_LO'] # input energy lower edge
     iene_hi = rmf['ENERG_HI'] # input energy upper edge

@@ -1,13 +1,16 @@
 ##############################################
 ############# MAIN FUNCTION ##################
 ##############################################
-from Xstack.shift_pha import *
-from Xstack.shift_arf import *
-from Xstack.shift_rmf import *
+from .shift_pha import *
+from .shift_arf import *
+from .shift_rmf import *
 
 import numpy as np
 from astropy.io import fits
 from tqdm import tqdm
+
+import os
+default_nh_file = os.path.join(os.path.dirname(__file__), 'tbabs_1e20.txt')
 
 class XSTACK:
     '''

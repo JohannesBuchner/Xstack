@@ -26,8 +26,8 @@ def shift_pha(pha_file,rmf_file,z):
     #tstart = time.time()
 
     with fits.open(rmf_file) as hdu:
-        rmf = hdu[1].data # default: matrix stored in table 1
-        ebo = hdu[2].data # ebounds
+        rmf = hdu['MATRIX'].data # default: matrix stored in table 1
+        ebo = hdu['EBOUNDS'].data # ebounds
     
     chan = ebo['CHANNEL']
     ene_lo = ebo['E_MIN']
@@ -37,7 +37,7 @@ def shift_pha(pha_file,rmf_file,z):
     ene_id = np.arange(len(ene_ce))
     
     with fits.open(pha_file) as hdu:
-        pi = hdu[1].data # default: matrix stored in table 1
+        pi = hdu['SPECTRUM'].data
     pha_chan = pi['CHANNEL'] # pha_chan starts from 0
     pha_coun = pi['COUNTS'] # the obs-frame photon counts
     assert (pha_chan == chan).all()
@@ -213,7 +213,7 @@ def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=
         hdu_spectrum.header['HDUCLAS2'] = 'TOTAL'
         hdu_spectrum.header['HDUCLAS3'] = 'COUNT'
         
-        hdulist.writeto('%s'%(fits_name), overwrite=True)
+        hdulist.writeto(fits_name, overwrite=True)
         
     return sum_pha,sum_phaerr
 
@@ -308,20 +308,22 @@ def get_bkgscal(src_file,bkg_file):
     scaling_ratio
     '''
     with fits.open(src_file) as hdu:
-        src_expo = hdu[1].header['EXPOSURE']
-        src_areascal = hdu[1].header['AREASCAL']
-        src_backscal = hdu[1].header['BACKSCAL']
+        header = hdu['SPECTRUM'].header
+        src_expo = header['EXPOSURE']
+        src_areascal = header['AREASCAL']
+        src_backscal = header['BACKSCAL']
     with fits.open(bkg_file) as hdu:
-        bkg_expo = hdu[1].header['EXPOSURE']
-        bkg_areascal = hdu[1].header['AREASCAL']
-        bkg_backscal = hdu[1].header['BACKSCAL']
+        bheader = hdu['SPECTRUM'].header
+        bkg_expo = bheader['EXPOSURE']
+        bkg_areascal = bheader['AREASCAL']
+        bkg_backscal = bheader['BACKSCAL']
     bkgscal = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo
     return bkgscal
 
 
 def get_expo(src_file):
     with fits.open(src_file) as hdu:
-        src_expo = hdu[1].header['EXPOSURE']
+        src_expo = hdu['SPECTRUM'].header['EXPOSURE']
     return src_expo
 
 

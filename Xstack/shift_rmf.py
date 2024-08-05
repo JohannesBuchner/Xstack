@@ -50,7 +50,7 @@ def shift_rmf(mat,ebo,z,rmfsft_method='PAR'):
         dspmap = 'ene_dsp.fits'
         if not os.path.exists(dspmap):
             print('dspmap `ene_dsp.fits` not found: will automatically generate one with `MATRIX` and `EBOUNDS` you provide...')
-            make_dspmap(mat,ebo,dspmap)
+            make_dspmap(mat, ebo, dspmap)
         
         with fits.open(dspmap) as hdu:
             dsp = hdu[1].data
@@ -208,7 +208,7 @@ def add_rmf(prob_lst,arf_file,expo_lst=None,fits_name=None,sample_rmf='sample.rm
     
     # rmf is to be weighted in the same way as arf
     with fits.open(arf_file) as hdu:
-        scal = hdu[2].data
+        scal = hdu['ARFSCAL'].data
     arfscal_lst = scal['ARFSCAL']
     rmfscal_lst = arfscal_lst
     
