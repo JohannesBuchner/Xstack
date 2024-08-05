@@ -7,12 +7,9 @@ A brief overview of Xstack:
 Xstack is a open-source, light-weight code for X-ray spectral shifting and stacking.
 
 Given the redshift of each spectrum in a list, Xstack will first shift these spectra (PHA, counts vs. output energy (channel)) from observed-frame to rest-frame, and then sum them together. The response matrix files (RMF, the probability that a photon with input energy
-will be detected with an output energy ) and ancillary response files (ARF, effective area vs. input energy) are shifted and stacked in a similar way to the spectrum. Xstack also supports correction of Galactic absorption, if an additional NH value (in units of 1
+will be detected with an output energy ) and ancillary response files (ARF, effective area vs. input energy) are shifted and stacked in a similar way to the spectrum. 
 
-) for each spectrum is given.
-
-In this demo, a preliminary example is provided (stacking powerlaws) to help you get started with Xstack. Running Xstack is essentially convenient: you simply need to specify where the spectral files are stored, along with the redshift and Galactic absorption (if possible). After that, you can run Xstack in one go.
-
+Xstack also supports correction of Galactic absorption, if an additional NH value (in units of 1) for each spectrum is given.
 
 """
 
@@ -49,8 +46,8 @@ parser.add_argument('--outrmf', type=str, default='stack.rmf', help='RMF output 
 parser.add_argument('--outarf', type=str, default='stack.arf', help='ARF output file name')
 parser.add_argument('flux_energy_lo', type=float, help='lower end of the energy range in keV for computing flux')
 parser.add_argument('flux_energy_hi', type=float, help='upper end of the energy range in keV for computing flux')
-parser.add_argument('arf_scale_method', type=str, default='SHP', help='method to calculate ARF weighting factor for each source')
-parser.add_argument('rmf_shift_method', type=str, default='PAR', help='method to shift RMF')
+parser.add_argument('arf_scale_method', type=str, default='SHP', help='method to calculate ARF weighting factor for each source: "FLX": assuming all sources have same energy flux (weigh by exposure time), "LMN": assuming all sources have same luminosity (weigh by exposure/dist^2), "SHP": assuming all sources have same spectral shape')
+parser.add_argument('--parametric_rmf', type=bool, default=True, help='method to shift RMF: parametric (gaussian) or not (re-sample response matrices)')
 parser.add_argument('--num_bkg_groups', type=int, default=10, help='number of background groups')
 
 args = parser.parse_args()
@@ -110,7 +107,7 @@ def main():
         srcid_lst=None,                                # the source id list (optional)
         arfscal_method=args.arf_scale_method,          # the method to calculate ARF weighting factor for each source
         int_rng=(args.flux_energy_lo, args.flux_energy_hi), # if `arfscal_method`=`SHP`, choose the range to calculate flux
-        rmfsft_method=args.rmf_shift_method,           # the RMF shifting method
+        rmfsft_method='PAR' if args.parametric_rmf else 'NONPAR', # the RMF shifting method
         sample_rmf=None,                               # the sample RMF to read input/output energy bin edge (if not specified, the first RMF in `rmffile_lst` will be used)
         sample_arf=None,                               # the sample ARF to read input/output energy bin edge (if not specified, the first RMF in `rmffile_lst` will be used)
         nh_file=nh_file,                               # the Galactic absorption profile (absorption factor vs. energy)
@@ -121,6 +118,7 @@ def main():
         o_arf_name=args.outarf,
         o_rmf_name=args.outrmf,
     ).run()
+    print(data_po)
 
 if __name__ == '__main__':
     main()
