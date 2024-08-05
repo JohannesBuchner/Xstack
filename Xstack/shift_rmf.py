@@ -240,10 +240,10 @@ def add_rmf(prob_lst,arf_file,expo_lst=None,fits_name=None,sample_rmf='sample.rm
         
         # extension 1: MATRIX
         with fits.open(sample_rmf) as hdu:
-            rmf = hdu[1].data
-            ebo = hdu[2].data
-        iene_lo = rmf['ENERG_LO']
-        iene_hi = rmf['ENERG_HI']
+            mat = hdu['MATRIX'].data
+            ebo = hdu['EBOUNDS'].data
+        iene_lo = mat['ENERG_LO']
+        iene_hi = mat['ENERG_HI']
         n_grp = []
         f_chan = []
         n_chan = []
