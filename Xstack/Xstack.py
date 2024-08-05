@@ -67,7 +67,11 @@ class XSTACK:
         else:
             self.sample_arf = sample_arf
         self.nh_file = nh_file
-        self.Nbkggrp = Nbkggrp
+        if Nbkggrp > len(phafile_lst):
+            print('Warning! `Nbkggrp` must be smaller than the number of spectra loaded. `Nbkggrp` is now set to 1.')
+            self.Nbkggrp = 1
+        else:
+            self.Nbkggrp = Nbkggrp
         self.o_pha_name = o_pha_name
         self.o_bkgpha_name = o_bkgpha_name
         self.o_arf_name = o_arf_name
