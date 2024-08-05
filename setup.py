@@ -17,4 +17,5 @@ setup(
         'sfdmap',
     ],
     package_data={'': ['**/tbabs_1e20.txt']},
+    scripts=['scripts/Xstack.py'],
 )
