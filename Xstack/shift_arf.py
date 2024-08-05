@@ -154,9 +154,11 @@ def add_arf(specresp_lst,pha_lst,z_lst,bkgpha_lst=None,bkgscal_lst=None,ene_lo=N
     flg = (ene_ce > int_rng[0]) & (ene_ce < int_rng[-1])
     expo_lst = np.array(expo_lst)
 
-    specresp_ali_lst = np.zeros_like(specresp_lst)
+    #specresp_ali_lst = np.zeros_like(specresp_lst)
+    specresp_ali_lst = [[] for _ in range(len(specresp_lst))]
     for i in range(len(specresp_ali_lst)):
         specresp_ali_lst[i] = align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp_lst[i])
+    specresp_ali_lst = np.array(specresp_ali_lst)
     arfscal_lst = get_arfscal(specresp_ali_lst,pha_lst,z_lst,bkgpha_lst,bkgscal_lst,expo_lst,ene_wd,flg,arfscal_method)
     specresp_scal_lst = specresp_lst * arfscal_lst[:,np.newaxis]
     sum_specresp = np.sum(specresp_scal_lst,axis=0)
