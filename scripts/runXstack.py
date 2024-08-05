@@ -94,7 +94,11 @@ def main():
         bkgphafile_lst.append(backfile)
         arffile_lst.append(arffile)
         rmffile_lst.append(rmffile)
-        
+
+    if args.num_bkg_groups > len(phafile_lst):
+          print('Warning! `Nbkggrp` must be smaller than the number of spectra loaded. `Nbkggrp` is now set to 1.')
+          args.num_bkg_groups = 1
+
     # initialize Xstack
     data_po = Xstack.XSTACK(
         phafile_lst=phafile_lst,                       # the PHA files list
