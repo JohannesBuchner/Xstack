@@ -5,7 +5,7 @@ X-ray spectral stacking is non-trivial compared to optical spectral stacking. Th
 
 To tackle these issues, we develop Xstack: a open-source, and comprehensive standalone pipeline code for X-ray spectral stacking. The methodology is to first sum all (rest-frame) PI spectra, without any scaling; and then sum the response files (ARFs and RMFs), each with appropriate weighting factors to preserve the overall spectral shape.
 
-The key features of Xstack are: 1) properly account account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 2) perserve Poisson statistics; 3) support Galactic absorption correction.
+The key features of Xstack are: 1) properly account account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 2) preserve Poisson statistics; 3) support Galactic absorption correction.
 
 
 Examples
