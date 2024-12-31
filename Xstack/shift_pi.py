@@ -1,32 +1,38 @@
 ##############################################
-########### PHA SHIFT & STACK ################
+############ PI SHIFT & STACK ################
 ##############################################
 import numpy as np
 from astropy.io import fits
 
 
-def shift_pha(pha_file,rmf_file,z):
+def shift_pi(pi_file,rmf_file,z,ene_trc=None):
     '''
-    Shift a single PHA to rest-frame.
+    Shift a single PI to rest-frame.
     
     Parameters
     ----------
-    pha_file: Observed-frame PHA file to be shifted.
-    rmf_file: RMF file (OGIP format) that defines channel-energy conversion.
-    z: redshift
+    pi_file : str
+        Observed-frame pi file to be shifted, in standard OGIP format.
+    rmf_file : str
+        RMF file defining channel-energy conversion, in standard OGIP format.
+    z : float
+        Redshift.
+    ene_trc : float
+        Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically 0.2 keV.
     
     Returns
     -------
-    rest_chan: Rest-frame channel.
-    rest_coun: Photon counts in each rest-frame channel.
-    pha_chan: Observed-frame channel.
-    pha_coun: Photon counts in each observed-frame channel.
+    rest_chan : list
+        Rest-frame channel.
+    rest_coun : list
+        Photon counts in each rest-frame channel.
+    pi_chan : list
+        Observed-frame channel.
+    pi_coun : list
+        Photon counts in each observed-frame channel.
     '''
-    #print('############Spectrum Shifting#############')
-    #tstart = time.time()
-
     with fits.open(rmf_file) as hdu:
-        rmf = hdu['MATRIX'].data # default: matrix stored in table 1
+        mat = hdu['MATRIX'].data # default: matrix stored in table 1
         ebo = hdu['EBOUNDS'].data # ebounds
     
     chan = ebo['CHANNEL']
@@ -36,20 +42,25 @@ def shift_pha(pha_file,rmf_file,z):
     ene_wd = ene_hi - ene_lo
     ene_id = np.arange(len(ene_ce))
     
-    with fits.open(pha_file) as hdu:
-        pi = hdu['SPECTRUM'].data
-    pha_chan = pi['CHANNEL'] # pha_chan starts from 0
-    pha_coun = pi['COUNTS'] # the obs-frame photon counts
-    assert (pha_chan == chan).all()
-    chan_id = np.arange(len(pha_chan))
+    with fits.open(pi_file) as hdu:
+        pi = hdu[1].data # default: matrix stored in table 1
+    pi_chan = pi['CHANNEL'] # pi_chan starts from 0
+    pi_coun = pi['COUNTS'] # the obs-frame photon counts
+    assert (pi_chan == chan).all()
+    chan_id = np.arange(len(pi_chan))
+
+    # truncate below ene_trc
+    if ene_trc is not None:
+        idx_trc = np.argmin(abs(ene_ce-ene_trc))
+        pi_coun[:idx_trc] = 0
     
-    rest_chan = pha_chan.copy()
+    rest_chan = pi_chan.copy()
     rest_coun = np.zeros(len(rest_chan),dtype=int) # the src-frame photon counts
     
     ene_ubound = ene_lo.max()
     ene_lbound = ene_hi.min() # set lower and upper bound of energy to avoid overflow issues
     
-    for i in range(len(pha_chan)):
+    for i in range(len(pi_chan)):
         #print(i)
         ene_lo_map = ene_lo[i] * (1+z)
         ene_hi_map = ene_hi[i] * (1+z)
@@ -73,10 +84,10 @@ def shift_pha(pha_file,rmf_file,z):
         
         # each channel in the basket would get number of photons proportional to its width
         prob_mask = ene_wd_mask / ene_wd_mask.sum() # the probability of entering each channel in the basket
-        phoct_mask = (pha_coun[i] * prob_mask).astype(int)
-        # if there are more than 1 channel in the basket, we want to make sure that the sum of photons in all bins are equal to pha_coun[i]
+        phoct_mask = (pi_coun[i] * prob_mask).astype(int)
+        # if there are more than 1 channel in the basket, we want to make sure that the sum of photons in all bins are equal to pi_coun[i]
         if len(phoct_mask) > 1:
-            phoct_mask[0] = pha_coun[i] - phoct_mask[1:].sum()
+            phoct_mask[0] = pi_coun[i] - phoct_mask[1:].sum()
         
         # finally, assign the photons
         for idx in range(len(chan_id_mask)):
@@ -84,19 +95,16 @@ def shift_pha(pha_file,rmf_file,z):
                 rest_coun[chan_id_mask[idx]] += phoct_mask[idx]
             except IndexError:
                 continue
-                
-    #print('Spectrum has been shifted (z=%.4f)\nTime used: %.2f s'%(z,time.time()-tstart))
-    #print('------------------------------------------')
 
-    return (rest_chan, rest_coun, pha_chan, pha_coun)
+    return (rest_chan, rest_coun, pi_chan, pi_coun)
 
 
-def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=None,arf_file=None):
+def add_pi(pi_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=None,arf_file=None):
     '''
-    The weighted sum of many PHA files. The weights are specified by `scal_lst`. 
+    The weighted sum of many PI files. The weights are specified by `scal_lst`. 
     
-    If source PHAs are to be summed, the weights should all be unity.
-    Otherwise if background PHAs are to be summed, the weights should be (as a return from function `get_bkgscal`):
+    If source PIs are to be summed, the weights should all be unity.
+    Otherwise if background PIs are to be summed, the weights should be (as a return from function `get_bkgscal`):
         `src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo`
     
     The uncertainty in each channel is calculated with Gaussian error propogation.
@@ -107,14 +115,38 @@ def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=
     the scaling ratio for background spectrum is often a number much smaller than 1, each scaled background spectrum 
     may have float number of photon counts < 1 in some channel i. In this case, the uncertainty in channel i cannot 
     be calculated with Poisson statistics (i.e. sqrt(N)). 
-    3. To conclude, `add_bkgpha` should be used when considering error of stacked background spectra with varied scaling 
-    ratio. `add_bkgpha` first group background spectra with similar scaling ratios, then calculate error for each group 
+    3. To conclude, `add_bkgpi` should be used when considering error of stacked background spectra with varied scaling 
+    ratio. `add_bkgpi` first group background spectra with similar scaling ratios, then calculate error for each group 
     with Poisson statistics (each channel has enough photon counts now), and finally calculate the error for the total 
     summed background spectra (each group of spectra is in high-counts regime, so Gaussian error propagation works).
-    4. Nevertheless for the photon counts (rather than the error), it is still recommended to use `add_pha`.
+    4. Nevertheless for the photon counts (rather than the error), it is still recommended to use `add_pi`.
     
-    Explanations
-    ------------
+    Parameters
+    ----------
+    pi_lst : list or numpy.ndarray
+        PI file list.
+    scal_lst : list or numpy.ndarray, optional
+        Weight (scaling ratio) list. Defaults to None (unity).
+    fits_name : str, optional
+        If specified, create a fits file with name `fits_name`. Defaults to None.
+    expo : float, optional
+        Total exposure time (seconds) to be written in the header of `fits_name`. Defaults to 10.
+    bkg_file : str, optional
+        Stacked background PI fits name to be written in the header of `fits_name`. Defaults to None.
+    rmf_file : str, optional
+        Stacked RMF fits name to be written in the header of `fits_name`. Defaults to None.
+    bkg_file : str, optional
+        Stacked ARF fits name to be written in the header of `fits_name`. Defaults to None.
+    
+    Returns
+    -------
+    sum_pi : numpy.ndarray
+        Stacked PI array.
+    sum_pierr : numpy.ndarray
+        Stacked PI error array.
+
+    Notes
+    -----
     The Net counts for some source:
         
         net counts = source counts - background counts * scaling factor                                           (1)
@@ -149,32 +181,23 @@ def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=
     factor): so we should have better understanding of the background spectrum, and therefore smaller uncertainties, as 
     expected from `sqrt(Background counts) / scaling factor`.
     
-    Parameters
-    ----------
-    pha_lst: PHA file list.
-    scal_lst: Weight (scaling ratio) list.
-    fits_name: If specified, create a fits file with name `fits_name`. (Default is None)
-    
-    Returns
-    -------
-    sum_pha, sum_phaerr
     '''
-    pha_lst = np.array(pha_lst)
+    pi_lst = np.array(pi_lst)
     if scal_lst is None:
-        scal_lst = np.ones(pha_lst.shape[0])
+        scal_lst = np.ones(pi_lst.shape[0])
     scal_lst = np.array(scal_lst)
-    assert pha_lst.shape[0] == scal_lst.shape[0], 'PHA number and ratio number do not match!'
+    assert pi_lst.shape[0] == scal_lst.shape[0], 'pi number and ratio number do not match!'
     
     # For spectral counts
-    pha_scal_lst = pha_lst * scal_lst[:,np.newaxis]
-    sum_pha = np.sum(pha_scal_lst, axis=0)
+    pi_scal_lst = pi_lst * scal_lst[:,np.newaxis]
+    sum_pi = np.sum(pi_scal_lst, axis=0)
     
     # For spectral counts uncertainties
-    # Gaussian error propagation: each channel of `pha_scal_lst` has to have enough photon counts!
-    # But this is generally not the case for bkg spectra (scal_lst << 1), so function `add_bkgpha` should be used instead!
-    phaerr_lst = np.sqrt(pha_lst) # Poisson statistics
-    phaerr_scal_lst = phaerr_lst * scal_lst[:,np.newaxis] # see explanations above
-    sum_phaerr = np.sqrt(np.sum(phaerr_scal_lst**2, axis=0)) 
+    # Gaussian error propagation: each channel of `pi_scal_lst` has to have enough photon counts!
+    # But this is generally not the case for bkg spectra (scal_lst << 1), so function `add_bkgpi` should be used instead!
+    pierr_lst = np.sqrt(pi_lst) # Poisson statistics
+    pierr_scal_lst = pierr_lst * scal_lst[:,np.newaxis] # see explanations above
+    sum_pierr = np.sqrt(np.sum(pierr_scal_lst**2, axis=0))
     
     # Write fits file (optional)
     if fits_name is not None:
@@ -183,14 +206,14 @@ def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=
         primary_hdu = fits.PrimaryHDU()
         hdulist.append(primary_hdu)
         
-        channels = np.arange(1,len(sum_pha)+1)
+        channels = np.arange(1,len(sum_pi)+1)
         cols = [fits.Column(name='CHANNEL', format='I', array=channels),
-                fits.Column(name='COUNTS', format='J', array=sum_pha),
-                fits.Column(name='STAT_ERR', format='D', array=sum_phaerr)]
+                fits.Column(name='COUNTS', format='J', array=sum_pi),
+                fits.Column(name='STAT_ERR', format='D', array=sum_pierr)]
         hdu_spectrum = fits.BinTableHDU.from_columns(cols, name='SPECTRUM')
         hdulist.append(hdu_spectrum)
 
-        # PHA header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
+        # PI header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
         hdu_spectrum.header['TELESCOP'] = 'STACKED'
         hdu_spectrum.header['INSTRUME'] = 'STACKED'
         hdu_spectrum.header['EXPOSURE'] = expo
@@ -213,14 +236,14 @@ def add_pha(pha_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=
         hdu_spectrum.header['HDUCLAS2'] = 'TOTAL'
         hdu_spectrum.header['HDUCLAS3'] = 'COUNT'
         
-        hdulist.writeto(fits_name, overwrite=True)
+        hdulist.writeto('%s'%(fits_name), overwrite=True)
         
-    return sum_pha,sum_phaerr
+    return sum_pi,sum_pierr
 
 
-def add_bkgpha(bkgpha_lst,bkgscal_lst,Ngrp=4,fits_name=None,expo=10):
+def add_bkgpi(bkgpi_lst,bkgscal_lst,Ngrp=10,fits_name=None,expo=10):
     '''
-    The weighted sum of background PHA files. The weights are specified by `bkgscal_lst`.
+    The weighted sum of background PI files. The weights are specified by `bkgscal_lst`.
     
     Group sources into bins of similar scaling ratio (considering both BACKSCAL and 
     EXPOSURE) For each group, sum the background counts, and compute the uncertainty 
@@ -229,30 +252,40 @@ def add_bkgpha(bkgpha_lst,bkgscal_lst,Ngrp=4,fits_name=None,expo=10):
     
     Parameters
     ----------
-    bkgpha_lst: Background PHA file list.
-    bkgscal_lst: Scaling ratio list.
-    Ngrp: Number of groups with similar scaling ratio. Default is 4.
+    bkgpi_lst : list or numpy.ndarray
+        Background PI file list.
+    bkgscal_lst : list or numpy.ndrray
+        Scaling ratio list.
+    Ngrp : int, optional
+        Number of groups with similar background-to-source scaling ratio. Defaults to 10.
+    fits_name : str, optional
+        If specified, create a fits file with name `fits_name`. Defaults to None.
+    expo : float, optional
+        Total exposure time (seconds) to be written in the header of `fits_name`. Defaults to 10.
     
     Returns
     -------
-    bkgpha, bkgpha_err
+    bkgpi : numpy.ndarray
+        Stacked background PI array.
+    bkgpi_err : numpy.ndarray
+        Stacked background PI error array.
     '''
-    bkgpha_lst = np.array(bkgpha_lst)
+    bkgpi_lst = np.array(bkgpi_lst)
     bkgscal_lst = np.array(bkgscal_lst)
-    assert bkgpha_lst.shape[0] == bkgscal_lst.shape[0], 'number of bkgPHAs and number of scaling ratios do not match!'
+    assert bkgpi_lst.shape[0] == bkgscal_lst.shape[0], 'number of bkgpis and number of scaling ratios do not match!'
     
     # Stacked bkg spectral counts calculated as stacked src spectral counts
-    bkgpha, bkgpha_err_UNUSED = add_pha(bkgpha_lst,bkgscal_lst)
+    bkgpi, bkgpi_err_UNUSED = add_pi(bkgpi_lst,bkgscal_lst)
     
     # Stacked bkg spectral counts uncertainties estimation: grouping method
     bkggrpflg_lst, bkgscal_ave_lst = make_bkggrpflg(bkgscal_lst,Ngrp=Ngrp) # group bkg spectra with similar scaling ratios
-    bkgpha_grp_lst = []
+    bkgpi_grp_lst = []
     for i in range(Ngrp):
-        bkgpha_tmp = bkgpha_lst[bkggrpflg_lst==i]
-        bkgpha_grp_lst.append(add_pha(bkgpha_tmp)[0])
-    bkgpha_grp_lst = np.array(bkgpha_grp_lst)
+        bkgpi_tmp = bkgpi_lst[bkggrpflg_lst==i]
+        bkgpi_grp_lst.append(add_pi(bkgpi_tmp)[0])
+    bkgpi_grp_lst = np.array(bkgpi_grp_lst)
     # then sum the groups (scaling with average scaling ratio, and use Gaussian error propagation)
-    bkgpha_UNUSED, bkgpha_err = add_pha(bkgpha_grp_lst,bkgscal_ave_lst)
+    bkgpi_UNUSED, bkgpi_err = add_pi(bkgpi_grp_lst,bkgscal_ave_lst)
     
     # write fits file (optional)
     if fits_name is not None:
@@ -261,14 +294,14 @@ def add_bkgpha(bkgpha_lst,bkgscal_lst,Ngrp=4,fits_name=None,expo=10):
         primary_hdu = fits.PrimaryHDU()
         hdulist.append(primary_hdu)
         
-        channels = np.arange(1,len(bkgpha)+1)
+        channels = np.arange(1,len(bkgpi)+1)
         cols = [fits.Column(name='CHANNEL', format='I', array=channels),
-                fits.Column(name='COUNTS', format='D', array=bkgpha), # BKG counts: float
-                fits.Column(name='STAT_ERR', format='D', array=bkgpha_err)]
+                fits.Column(name='COUNTS', format='D', array=bkgpi), # BKG counts: float
+                fits.Column(name='STAT_ERR', format='D', array=bkgpi_err)]
         hdu_spectrum = fits.BinTableHDU.from_columns(cols, name='SPECTRUM')
         hdulist.append(hdu_spectrum)
 
-        # PHA header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
+        # PI header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
         hdu_spectrum.header['TELESCOP'] = 'STACKED'
         hdu_spectrum.header['INSTRUME'] = 'STACKED'
         hdu_spectrum.header['EXPOSURE'] = expo
@@ -290,7 +323,7 @@ def add_bkgpha(bkgpha_lst,bkgscal_lst,Ngrp=4,fits_name=None,expo=10):
 
         hdulist.writeto('%s'%(fits_name), overwrite=True)
     
-    return bkgpha,bkgpha_err
+    return bkgpi,bkgpi_err
 
 
 def get_bkgscal(src_file,bkg_file):
@@ -300,47 +333,65 @@ def get_bkgscal(src_file,bkg_file):
         
     Parameters
     ----------
-    src_file: source spectrum file name.
-    bkg_file: background spectrum file name.
+    src_file : str
+        Source PI spectrum name.
+    bkg_file : str
+        Background PI spectrum name.
     
     Returns
     -------
-    scaling_ratio
+    bkgscal : float
+        Background scaling ratio.
     '''
     with fits.open(src_file) as hdu:
-        header = hdu['SPECTRUM'].header
-        src_expo = header['EXPOSURE']
-        src_areascal = header['AREASCAL']
-        src_backscal = header['BACKSCAL']
+        src_expo = hdu[1].header['EXPOSURE']
+        src_areascal = hdu[1].header['AREASCAL']
+        src_backscal = hdu[1].header['BACKSCAL']
     with fits.open(bkg_file) as hdu:
-        bheader = hdu['SPECTRUM'].header
-        bkg_expo = bheader['EXPOSURE']
-        bkg_areascal = bheader['AREASCAL']
-        bkg_backscal = bheader['BACKSCAL']
+        bkg_expo = hdu[1].header['EXPOSURE']
+        bkg_areascal = hdu[1].header['AREASCAL']
+        bkg_backscal = hdu[1].header['BACKSCAL']
     bkgscal = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo
     return bkgscal
 
 
 def get_expo(src_file):
+    '''
+    Get source exposure time.
+
+    Parameters
+    ----------
+    src_file : str
+        Source PI spectrum name.
+
+    Returns
+    -------
+    src_expo : float
+        Source exposure time.
+    '''
     with fits.open(src_file) as hdu:
-        src_expo = hdu['SPECTRUM'].header['EXPOSURE']
+        src_expo = hdu[1].header['EXPOSURE']
     return src_expo
 
 
 def make_bkggrpflg(bkgscal_lst,Ngrp=4):
     '''
     Group the `bkgscal_lst` into `Ngrp` groups, according to the scaling ratios. 
-    Return an array `bkggrpflg_lst` that tells you which group each background spectrum should be assigned to.
+    Return an array `bkggrpflg_lst` that tells you which group each background PI spectrum should be assigned to.
     
     Parameters
     ----------
-    bkgscal_lst: The list of scaling-ratio (considering both BACKSCAL and EXPOSURE) for each background spectrum.
-    Ngrp: The number of groups to be created. Default is 4.
+    bkgscal_lst : list or numpy.ndarray
+        The list of scaling-ratio (considering both BACKSCAL and EXPOSURE) for each background PI spectrum.
+    Ngrp : int, optional
+        The number of groups to be created. Defaults to 4.
     
     Returns
     -------
-    bkggrpflg_lst: An array that indicates which group each background spectrum should be assigned to. (length = len(bkgscal_lst))
-    bkgscal_ave_lst: The average scaling-ratio of each group. (length = `Ngrp`)
+    bkggrpflg_lst : numpy.ndarray
+        An array that indicates which group each background PI spectrum should be assigned to (length = len(bkgscal_lst)).
+    bkgscal_ave_lst : numpy.ndrray
+        The average scaling-ratio of each group (length = `Ngrp`).
     '''
     idx_lst = np.argsort(bkgscal_lst)
     idx_lo = np.array([int(len(idx_lst) / Ngrp * i) for i in range(Ngrp)])
@@ -358,22 +409,3 @@ def make_bkggrpflg(bkgscal_lst,Ngrp=4):
         bkgscal_ave_lst[i] = np.average(bkgscal_lst[bkggrpflg_lst==i])
     
     return bkggrpflg_lst, bkgscal_ave_lst
-
-
-def first_energy_fits(srcid_lst,first_energy_lst,fits_name):
-    '''
-
-    '''
-    if fits_name is not None:
-        hdulist = fits.HDUList()
-        
-        primary_hdu = fits.PrimaryHDU()
-        hdulist.append(primary_hdu)
-        
-        cols = [fits.Column(name='srcid', format='I', array=srcid_lst),
-                fits.Column(name='f_energy', format='D', array=first_energy_lst)]
-        hdu_fenergy = fits.BinTableHDU.from_columns(cols, name='FENERGY')
-        hdulist.append(hdu_fenergy)
-
-        hdulist.writeto('%s'%(fits_name), overwrite=True)
-    return 

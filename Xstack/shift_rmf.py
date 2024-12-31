@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.io import fits
 from scipy.optimize import curve_fit
+from numba import jit
 from tqdm import tqdm
 import os
 
@@ -11,36 +12,36 @@ def shift_rmf(mat,ebo,z,rmfsft_method='PAR'):
     1) Shift in the direction of output channel energy. That is to say, shift and broaden the probability profile for 
        each input energy (i.e. when the detector receive a photon with some input energy, the probability that a signal 
        at some output channel energy will be observed; so this is a function of output channel energy) by (1+z); 
-    2) Shift in the direction of input energy. That is to say, shift the input energy by (1+z).
+    2) Shift in the direction of input energy by (1+z).
     
     Parameters
     ----------
-    mat : FITS_rec
-        The `MATRIX` HDU data from a standard RMF file.
-    ebo : FITS_rec
-        The `EBOUNDS` HDU data from a standard RMF file.
+    mat : astropy.io.fits.FITS_rec
+        The `MATRIX` HDU data from a standard OGIP RMF file.
+    ebo : astropy.io.fits.FITS_rec
+        The `EBOUNDS` HDU data from a standard OGIP RMF file.
     z : float
         Redshift.
-    rmfsft_method : str
+    rmfsft_method : str, optional
         The RMF shifting method. Two methods are available:
-        * `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
-        * `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, 
+        - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
+        - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, 
           and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is 
-          far more time-consuming than PARameterized method (~10^2 times slower).
+          more time-consuming than PARameterized method (~10^2 times slower).
           
     Returns
     -------
-    prob_sft : ndarray
+    prob_sft : numpy.ndarray
         The shifted probability matrix.
     '''
-    iene_lo = mat['ENERG_LO']
-    iene_hi = mat['ENERG_HI']
+    iene_lo = mat['ENERG_LO'].astype(np.float32)
+    iene_hi = mat['ENERG_HI'].astype(np.float32)
     iene_ce = (iene_lo + iene_hi) / 2
     iene_wd = (iene_hi - iene_lo)
     iene_id = np.arange(len(iene_ce))
     
-    ene_lo = ebo['E_MIN']
-    ene_hi = ebo['E_MAX']
+    ene_lo = ebo['E_MIN'].astype(np.float32)
+    ene_hi = ebo['E_MAX'].astype(np.float32)
     ene_ce = (ene_lo + ene_hi) / 2
     ene_wd = (ene_hi - ene_lo)
     ene_id = np.arange(len(ene_ce))
@@ -50,7 +51,7 @@ def shift_rmf(mat,ebo,z,rmfsft_method='PAR'):
         dspmap = 'ene_dsp.fits'
         if not os.path.exists(dspmap):
             print('dspmap `ene_dsp.fits` not found: will automatically generate one with `MATRIX` and `EBOUNDS` you provide...')
-            make_dspmap(mat, ebo, dspmap)
+            make_dspmap(mat,ebo,dspmap)
         
         with fits.open(dspmap) as hdu:
             dsp = hdu[1].data
@@ -92,86 +93,95 @@ def shift_rmf(mat,ebo,z,rmfsft_method='PAR'):
                 prob_sft[iene_id_mask[j]] += prob_sft_i * prob_mask[j]
                 
     elif rmfsft_method == 'NONPAR': # Non-PARameterized method
-        # get prob_lst
-        grid = np.meshgrid(ene_ce,iene_ce) # ( (len(iene_ce),len(ene_ce)), (len(iene_ce),len(ene_ce)) )
-        prob = np.zeros(grid[0].shape) # probability per channel
+        ## get prob_lst
+        # grid = np.meshgrid(ene_ce,iene_ce) # ( (len(iene_ce),len(ene_ce)), (len(iene_ce),len(ene_ce)) )
+        # prob = np.zeros(grid[0].shape) # probability per channel
         
-        n_grp = mat['N_GRP']
-        f_chan = mat['F_CHAN']
-        n_chan = mat['N_CHAN']
-        mat = mat['MATRIX']
+        # n_grp = mat['N_GRP']
+        # f_chan = mat['F_CHAN']
+        # n_chan = mat['N_CHAN']
+        # matrix = np.array(mat['MATRIX'])
         
-        f_chan_0 = int(np.min([np.min(f_chan[_]) for _ in range(len(f_chan))])) # the zero point of channel index
-        for i in range(len(iene_ce)):
-            f_mat = 0
-            for grp_j in range(n_grp[i]):
-                f_chan_j = f_chan[i][grp_j] - f_chan_0
-                n_chan_j = n_chan[i][grp_j]
-                e_chan_j = f_chan_j + n_chan_j # ending index of group_j in channel
-                e_mat = f_mat + n_chan_j # ending index of group_j in matrix[i]
+        # f_chan_0 = int(np.min([np.min(f_chan[_]) for _ in range(len(f_chan))])) # the zero point of channel index
+        # for i in range(len(iene_ce)):
+        #     f_matrix = 0   # starting index of matrix[i]
+        #     for grp_j in range(n_grp[i]):
+        #         f_chan_j = f_chan[i][grp_j] - f_chan_0  # starting index of channel
+        #         n_chan_j = n_chan[i][grp_j]             # number of channel
+        #         e_chan_j = f_chan_j + n_chan_j          # ending index of in channel
+        #         e_matrix = f_matrix + n_chan_j          # ending index of matrix[i]
                 
-                prob[i][f_chan_j:e_chan_j] += mat[i][f_mat:e_mat]
-                f_mat += n_chan_j
+        #         prob[i][f_chan_j:e_chan_j] += matrix[i][f_matrix:e_matrix]
+        #         f_matrix += n_chan_j
+
+        prob = get_prob(mat,ebo)
+        prob_sft = compute_prob(prob,iene_lo,iene_hi,ene_lo,ene_hi,z)
         
-        prob_sft = np.zeros(grid[0].shape)
-        iene_ubound = iene_lo.max()
-        iene_lbound = iene_hi.min()
-        for i in range(len(iene_ce)):
-            # input energy *(1+z)
-            iene_lo_map = iene_lo[i] * (1+z)
-            iene_hi_map = iene_hi[i] * (1+z)
+        ## DEPRECATED BELOW!
+        # # de-redshift probability matrix
+        # prob_sft = np.zeros(grid[0].shape)
+        # iene_ubound = np.max(iene_lo)
+        # iene_lbound = np.min(iene_hi)
+        # for i in range(len(iene_ce)):
+        #     # input energy *(1+z)
+        #     iene_lo_map = iene_lo[i] * (1+z)
+        #     iene_hi_map = iene_hi[i] * (1+z)
             
-            if iene_lo_map > iene_ubound:
-                continue
-            if iene_hi_map < iene_lbound:
-                continue
+        #     if iene_lo_map > iene_ubound:
+        #         break
+        #     if iene_hi_map < iene_lbound:
+        #         continue
                 
-            # step 1: output energy *(1+z), dispersion *(1+z)
-            prob_1d = np.zeros(len(ene_ce))
-            ene_ubound = ene_lo.max()
-            ene_lbound = ene_hi.min()
-            for j in range(len(ene_ce)):
-                ene_lo_map = ene_lo[j] * (1+z)
-                ene_hi_map = ene_hi[j] * (1+z)
+        #     # step 1: output channel energy *(1+z), dispersion *(1+z)
+        #     prob_1d = np.zeros(len(ene_ce))
+        #     ene_ubound = np.max(ene_lo)
+        #     ene_lbound = np.min(ene_hi)
+        #     for j in range(len(ene_ce)):
+        #         ene_lo_map = ene_lo[j] * (1+z)
+        #         ene_hi_map = ene_hi[j] * (1+z)
                 
-                if ene_lo_map > ene_ubound:
-                    continue
-                if ene_hi_map < ene_lbound:
-                    continue
+        #         if ene_lo_map > ene_ubound:
+        #             break
+        #         if ene_hi_map < ene_lbound:
+        #             continue
                 
-                mask = (ene_lo_map < ene_hi) & (ene_hi_map > ene_lo)
-                ene_id_mask = ene_id[mask]
-                ene_wd_mask = ene_wd[mask]
-                ene_lo_mask = ene_lo[mask]
-                ene_hi_mask = ene_hi[mask]
+        #         mask = (ene_lo_map < ene_hi) & (ene_hi_map > ene_lo)
+        #         ene_id_mask = ene_id[mask]
+        #         ene_wd_mask = ene_wd[mask]
+        #         ene_lo_mask = ene_lo[mask]
+        #         ene_hi_mask = ene_hi[mask]
                 
-                ene_wd_mask[0] = ene_hi_mask[0] - ene_lo_map
-                ene_wd_mask[-1] = ene_hi_map - ene_lo_mask[-1]
+        #         ene_wd_mask[0] = ene_hi_mask[0] - ene_lo_map
+        #         ene_wd_mask[-1] = ene_hi_map - ene_lo_mask[-1]
                 
-                prob_mask = ene_wd_mask / ene_wd_mask.sum()
+        #         prob_mask = ene_wd_mask / np.sum(ene_wd_mask)
                 
-                for k in range(len(ene_id_mask)):
-                    prob_1d[ene_id_mask[k]] += prob[i][j] * prob_mask[k]
-                prob_1d[ene_id_mask[0]:ene_id_mask[-1]+1] += prob[i][j] * prob_mask
+        #         #for k in range(len(ene_id_mask)):
+        #         #    prob_1d[ene_id_mask[k]] += prob[i][j] * prob_mask[k]
+        #         prob_1d[ene_id_mask] += prob[i][j] * prob_mask
+        #         prob_1d[ene_id_mask[0]:ene_id_mask[-1]+1] += prob[i][j] * prob_mask
                 
-            # step 2: input energy * (1+z)
-            mask = (iene_lo_map < iene_hi) & (iene_hi_map > iene_lo)
-            iene_id_mask = iene_id[mask]
-            iene_wd_mask = iene_wd[mask]
-            iene_lo_mask = iene_lo[mask]
-            iene_hi_mask = iene_hi[mask]
+        #     # step 2: input model energy * (1+z)
+        #     mask = (iene_lo_map < iene_hi) & (iene_hi_map > iene_lo)
+        #     iene_id_mask = iene_id[mask]
+        #     iene_wd_mask = iene_wd[mask]
+        #     iene_lo_mask = iene_lo[mask]
+        #     iene_hi_mask = iene_hi[mask]
             
-            iene_wd_mask[0] = iene_hi_mask[0] - iene_lo_map
-            iene_wd_mask[-1] = iene_hi_map - iene_lo_mask[-1]
+        #     iene_wd_mask[0] = iene_hi_mask[0] - iene_lo_map
+        #     iene_wd_mask[-1] = iene_hi_map - iene_lo_mask[-1]
             
-            prob_mask = iene_wd_mask / iene_wd_mask.sum()
+        #     prob_mask = iene_wd_mask / np.sum(iene_wd_mask)
             
-            for l in range(len(iene_id_mask)):
-                prob_sft[iene_id_mask[l]] += prob_1d * prob_mask[l]
+        #     # for l in range(len(iene_id_mask)):
+        #     #     prob_sft[iene_id_mask[l]] += prob_1d * prob_mask[l]
+        #     prob_sft[iene_id_mask] += prob_1d * prob_mask[:,np.newaxis]
         
     else:
         raise Exception('Available rmfsft_method (RMF shifting method): `PAR` or `NONPAR` (see help(shift_rmf) for illustration)!')
             
+    del mat,ebo
+    
     return prob_sft
 
 
@@ -181,22 +191,22 @@ def add_rmf(prob_lst,arf_file,expo_lst=None,fits_name=None,sample_rmf='sample.rm
     
     Parameters
     ----------
-    prob_lst : list or array_like
+    prob_lst : list or numpy.ndarray
         The probability matrix list.
     arf_file : str
-        The shifted&stacked ARF file name. Should be the product of function `add_arf`! 
-    expo_lst : list or array_like, optional
+        The shifted&stacked ARF file name. Take the ARF weighting factor from this file. Should be the product of function `add_arf`! 
+    expo_lst : list or numpy.ndarray, optional
         Exposure list.
     fits_name : str, optional
         Output RMF name.
     sample_rmf : str, optional
         Sample RMF name.
-    srcid_lst : list or array_like, optional
+    srcid_lst : list or numpy.ndarray, optional
         Source ID list.
     
     Returns
     -------
-    sum_prob : ndarray
+    sum_prob : numpy.ndarray
         The stacked RMF matrix.
     '''
     if expo_lst is None:
@@ -310,6 +320,197 @@ def add_rmf(prob_lst,arf_file,expo_lst=None,fits_name=None,sample_rmf='sample.rm
     return sum_prob
 
 
+def get_prob(mat,ebo):
+    '''
+    Get the RMF 2D probability matrix. 
+
+    Parameters
+    ----------
+    mat : astropy.io.fits.FITS_rec
+        The `MATRIX` extension of a standard OGIP RMF file. Must include the following columns:
+        - `ENERG_LO`
+        - `ENERG_HI`
+        - `N_GRP`
+        - `F_CHAN`
+        - `N_CHAN`
+        - `MATRIX`
+    ebo : astropy.io.fits.FITS_rec
+        The `EBOUNDS` extension of a standard OGIP RMF file. Must include the following columns:
+        - `E_MIN` 
+        - `E_MAX`
+
+    Returns
+    -------
+    prob : numpy.ndarray
+        The RMF 2D probability matrix. Index [i,j], where:
+        - i represents arfene (iene or inpu model energy)
+        - j represents ene (output channel energy)
+    '''
+    ene_lo = ebo['E_MIN'].astype(np.float32)
+    ene_hi = ebo['E_MAX'].astype(np.float32)
+    ene_ce = (ene_lo + ene_hi) / 2
+    ene_wd = ene_hi - ene_lo
+    iene_lo = mat['ENERG_LO'].astype(np.float32)
+    iene_hi = mat['ENERG_HI'].astype(np.float32)
+    iene_ce = (iene_lo + iene_hi) / 2
+    iene_wd = iene_hi - iene_lo
+    grid = np.meshgrid(ene_ce,iene_ce) # ( (len(iene_ce),len(ene_ce)), (len(iene_ce),len(ene_ce)) )
+    prob = np.zeros(grid[0].shape) # probability per channel
+    
+    n_grp = mat['N_GRP']
+    f_chan = mat['F_CHAN']
+    n_chan = mat['N_CHAN']
+    matrix = np.array(mat['MATRIX'])
+    
+    f_chan_0 = int(np.min([np.min(f_chan[_]) for _ in range(len(f_chan))])) # the zero point of channel index
+    for i in range(len(iene_ce)):
+        f_matrix = 0   # starting index of matrix[i]
+        for grp_j in range(n_grp[i]):
+            f_chan_j = f_chan[i][grp_j] - f_chan_0  # starting index of channel
+            n_chan_j = n_chan[i][grp_j]             # number of channel
+            e_chan_j = f_chan_j + n_chan_j          # ending index of in channel
+            e_matrix = f_matrix + n_chan_j          # ending index of matrix[i]
+            
+            prob[i][f_chan_j:e_chan_j] += matrix[i][f_matrix:e_matrix]
+            f_matrix += n_chan_j
+
+    return prob
+
+
+def get_prob1d(n_grp,f_chan,n_chan,matrix1d,Nene,f_chan_0=0):
+    '''
+    Get the 1d probability distribution for output channel energy at a specific input model energy.
+
+    Parameters
+    ----------
+    n_grp : int
+        `N_GRP` array of your specific input model energy, from `MATRIX` extension.
+    f_chan : int
+        `F_CHAN` array of your specific input model energy, from `MATRIX` extension.
+    n_chan : int
+        `N_CHAN` array of your specific input model energy, from `MATRIX` extension.
+    matrix1d : numpy.ndarray
+        `MATRIX` array of your specific input model energy, from `MATRIX` extension.
+    Nene : int
+        Length of output channel energy.
+    f_chan_0 : int, optional
+        The index number of the first output channel energy (0 or 1). Defaults to 0.
+
+    Returns
+    -------
+    prob1d : numpy.ndarray
+        The 1d probability distribution for output channel energy at a specific input model energy.
+    '''
+    f_matrix = 0   # starting index of matrix1d
+    prob1d = np.zeros(Nene)
+    for j in range(n_grp):
+        f_chan_j = f_chan[j] - f_chan_0         # starting index of channel
+        n_chan_j = n_chan[j]                    # number of channel
+        e_chan_j = f_chan_j + n_chan_j          # ending index of in channel
+        e_matrix = f_matrix + n_chan_j          # ending index of matrix[i]
+        prob1d[f_chan_j:e_chan_j] += matrix1d[f_matrix:e_matrix]
+        f_matrix += n_chan_j
+    return prob1d
+
+
+#==============================================
+########### Non-Par shifting func #############
+#==============================================
+@jit
+def compute_prob(prob,iene_lo,iene_hi,ene_lo,ene_hi,z):
+    '''
+    Numba code for Non-parametric RMF shifting.
+
+    Parameters
+    ----------
+    prob : numpy.ndarray
+        The RMF 2D probability matrix.
+    iene_lo : numpy.ndarray
+        Lower edge of input model energy (ARF energy) bin.
+    iene_hi : numpy.ndarray
+        Upper edge of input model energy (ARF energy) bin.
+    ene_lo : numpy.ndarray
+        Lower edge of output channel energy bin.
+    ene_hi : numpy.ndarray
+        Upper edge of output channel energy bin.
+    z : float
+        Redshift.
+
+    Returns
+    -------
+    prob_sft : numpy.ndarray
+        The rest-frame shifted RMF 2D probability matrix. 
+    '''
+    iene_ce = (iene_lo + iene_hi) / 2
+    iene_wd = iene_hi - iene_lo
+    iene_id = np.arange(len(iene_ce))
+
+    ene_ce = (ene_lo + ene_hi) / 2
+    ene_wd = ene_hi - ene_lo
+    ene_id = np.arange(len(ene_ce))
+    
+    # de-redshift probability matrix
+    prob_sft = np.zeros(prob.shape)
+    iene_ubound = np.max(iene_lo)
+    iene_lbound = np.min(iene_hi)
+    for i in range(len(iene_ce)):
+        # input energy *(1+z)
+        iene_lo_map = iene_lo[i] * (1+z)
+        iene_hi_map = iene_hi[i] * (1+z)
+        
+        if iene_lo_map > iene_ubound:
+            break
+        if iene_hi_map < iene_lbound:
+            continue
+            
+        # step 1: output channel energy *(1+z), dispersion *(1+z)
+        prob_1d = np.zeros(len(ene_ce))
+        ene_ubound = np.max(ene_lo)
+        ene_lbound = np.min(ene_hi)
+        for j in range(len(ene_ce)):
+            ene_lo_map = ene_lo[j] * (1+z)
+            ene_hi_map = ene_hi[j] * (1+z)
+            
+            if ene_lo_map > ene_ubound:
+                break
+            if ene_hi_map < ene_lbound:
+                continue
+            
+            mask = (ene_lo_map < ene_hi) & (ene_hi_map > ene_lo)
+            ene_id_mask = ene_id[mask]
+            ene_wd_mask = ene_wd[mask]
+            ene_lo_mask = ene_lo[mask]
+            ene_hi_mask = ene_hi[mask]
+            
+            ene_wd_mask[0] = ene_hi_mask[0] - ene_lo_map
+            ene_wd_mask[-1] = ene_hi_map - ene_lo_mask[-1]
+            
+            prob_mask = ene_wd_mask / np.sum(ene_wd_mask)
+            
+            #for k in range(len(ene_id_mask)):
+            #    prob_1d[ene_id_mask[k]] += prob[i][j] * prob_mask[k]
+            prob_1d[ene_id_mask] += prob[i][j] * prob_mask
+            prob_1d[ene_id_mask[0]:ene_id_mask[-1]+1] += prob[i][j] * prob_mask
+            
+        # step 2: input model energy * (1+z)
+        mask = (iene_lo_map < iene_hi) & (iene_hi_map > iene_lo)
+        iene_id_mask = iene_id[mask]
+        iene_wd_mask = iene_wd[mask]
+        iene_lo_mask = iene_lo[mask]
+        iene_hi_mask = iene_hi[mask]
+        
+        iene_wd_mask[0] = iene_hi_mask[0] - iene_lo_map
+        iene_wd_mask[-1] = iene_hi_map - iene_lo_mask[-1]
+        
+        prob_mask = iene_wd_mask / np.sum(iene_wd_mask)
+        
+        # for l in range(len(iene_id_mask)):
+        #     prob_sft[iene_id_mask[l]] += prob_1d * prob_mask[l]
+        prob_sft[iene_id_mask] += prob_1d * prob_mask[:,np.newaxis]
+
+    return prob_sft
+
+
 #==============================================
 ############ Make Dispersion Map ##############
 #==============================================
@@ -319,14 +520,15 @@ def gaussian(x, amplitude, mean, stddev):
 
     Parameters
     ----------
-    x : float or array_like
+    x : float or numpy.ndarray
     amplitude : float
     mean : float
     stddev : float
 
     Returns
     -------
-    pdf : float or ndarray
+    pdf : float or numpy.ndarray
+        The probability at x.
     '''
     pdf = amplitude * np.exp(-((x - mean) / stddev) ** 2 / 2)
     return pdf
@@ -338,10 +540,10 @@ def get_ene_dsp(ene_ce,prob_lst,fixed_mean=True):
 
     Parameters
     ----------
-    ene_ce : array_like
-        Output channel energy.
-    prob_lst : array_like
-        Probability profile for some input energy (this is a function of output channel energy). Must have same length as `ene_ce`.
+    ene_ce : numpy.ndarray
+        Output central channel energy.
+    prob_lst : numpy.ndarray
+        Probability profile for some input model energy (this is a function of output channel energy). Must have same length as `ene_ce`.
     fixed_mean : bool
         If true, the mean energy of the Gaussian will be fixed at the nominal energy (which corresponds to maximal probability).
 
@@ -374,9 +576,9 @@ def make_dspmap(mat,ebo,out_name):
     
     Parameters
     ----------
-    mat : FITS_rec
+    mat : astropy.io.fits.FITS_rec
         The `MATRIX` HDU data from a standard RMF file.
-    ebo : FITS_rec
+    ebo : astropy.io.fits.FITS_rec
         The `EBOUNDS` HDU data from a standard RMF file.
     out_name : str
         The output dispersion map name.
@@ -419,7 +621,7 @@ def make_dspmap(mat,ebo,out_name):
     prob_ene = prob / ene_wd # probability per energy bin
     
     # get nominal energy and energy dispersion
-    print('################# Generating dspmap ###################')
+    print('****************** Generating dspmap ********************')
     norm = []
     ene_nom = []
     ene_dsp = []
@@ -441,6 +643,6 @@ def make_dspmap(mat,ebo,out_name):
     coldefs = fits.ColDefs(columns)
     table = fits.BinTableHDU.from_columns(coldefs)
     table.writeto(out_name,overwrite=True)
-    print('########### dspmap successfully generated! ############')
+    print('****************** dspmap successfully generated! ********************')
     
     return
