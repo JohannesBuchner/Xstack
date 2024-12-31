@@ -81,16 +81,16 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   |`--outfene`|name of output fits storing PI/ARF first energy, or basename in resample mod|stack.fene|
   |`--parametric_rmf`|use parametric method (time-saving yet crude short-cut) to shift RMF|--|
   |`--rm_ene_dsp`|remove energy dispersion map (the map is used for shifting RMF in parametric mode)|--|
-  |`usecpu`|number of cpus used for non-parametric RMF shifting|10|
-  |`num_bkg_groups`|number of background groups|10|
-  |`ene_trc`|energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)|0.0|
-  |`same_rmf`|specify the name of common rmf, if all sources are to use the same rmf|None|
-  |`resample_method`|method for performing resampling; `None`: no resampling, `bootstrap`: use bootstrap, `KFold`: use KFold)|None|
-  |`num_bootstrap`|number of bootstrap experiments in `bootstrap` mode|10|
-  |`bootstrap_portion`|portion of sources to resample in each bootstrap experiment|1.0|
-  |`Ksort_filelist`|name of file storing the sorting value for each source in `filelist`, under `KFold` mode|Ksort_filelist.txt|
-  |`K`|number of groups for `KFold`|4|
-  |`resample_outdir`|name of output directory storing resampling files|resample|
+  |`--usecpu`|number of cpus used for non-parametric RMF shifting|10|
+  |`--num_bkg_groups`|number of background groups|10|
+  |`--ene_trc`|energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)|0.0|
+  |`--same_rmf`|specify the name of common rmf, if all sources are to use the same rmf|None|
+  |`--resample_method`|method for performing resampling; `None`: no resampling, `bootstrap`: use bootstrap, `KFold`: use KFold)|None|
+  |`--num_bootstrap`|number of bootstrap experiments in `bootstrap` mode|10|
+  |`--bootstrap_portion`|portion of sources to resample in each bootstrap experiment|1.0|
+  |`--Ksort_filelist`|name of file storing the sorting value for each source in `filelist`, under `KFold` mode|Ksort_filelist.txt|
+  |`--K`|number of groups for `KFold`|4|
+  |`--resample_outdir`|name of output directory storing resampling files|resample|
 
 ### 2.  Python module version
 - An example:
