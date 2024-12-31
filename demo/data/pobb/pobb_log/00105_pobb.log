@@ -6,35 +6,7 @@ XSPEC12>model clumin*zpowerlw+const*clumin*zbbody
 
 Input parameter value, delta, min, bot, top, and max values for ...
             0.5       -0.1(     0.005)          0          0      1e+06      1e+06
-1:clumin:Emin>
-             10       -0.1(       0.1)          0          0      1e+06      1e+06
-2:clumin:Emax>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-3:clumin:Redshift>
-             40       0.01(       0.4)       -100       -100        100        100
-4:clumin:lg10Lum>
-              1       0.01(      0.01)         -3         -2          9         10
-5:zpowerlw:PhoIndex>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-6:zpowerlw:Redshift>
-              1       0.01(      0.01)          0          0      1e+20      1e+24
-7:zpowerlw:norm>
-              1       0.01(      0.01)          0          0      1e+10      1e+10
-8:constant:factor>
-            0.5       -0.1(     0.005)          0          0      1e+06      1e+06
-9:clumin:Emin>
-             10       -0.1(       0.1)          0          0      1e+06      1e+06
-10:clumin:Emax>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-11:clumin:Redshift>
-             40       0.01(       0.4)       -100       -100        100        100
-12:clumin:lg10Lum>
-              3       0.01(      0.03)     0.0001       0.01        100        200
-13:zbbody:kT>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-14:zbbody:Redshift>
-              1       0.01(      0.01)          0          0      1e+20      1e+24
-15:zbbody:norm>
+1:clumin:Emin>/*
 
 ========================================================================
 Model clumin<1>*zpowerlw<2> + constant<3>*clumin<4>*zbbody<5> Source No.: 1   Active/Off
@@ -58,7 +30,6 @@ Model Model Component  Parameter  Unit     Value
 ________________________________________________________________________
 
 XSPEC12>
-XSPEC12>
 XSPEC12>newpar 2 2
 XSPEC12>newpar 3 1.3597121968460646
 XSPEC12>newpar 4 44.966880022763306
@@ -76,7 +47,7 @@ XSPEC12>show
 
 XSPEC version: 12.13.1
 
-Tue Jul 30 22:00:40 2024
+Tue Dec 31 14:20:08 2024
  Auto-saving is done after every command.
  Minimization technique: Levenberg-Marquardt
     Convergence criterion = 0.01
@@ -141,11 +112,11 @@ No active models
 Bayes is off
 
 XSPEC12>
-XSPEC12>data /data/chensj/eROSITA/Xstack_new/demo/data/sample.src
+XSPEC12>data /data/chensj/eROSITA/Xstack-full/demo/data/sample.src
 
 1 spectrum  in use
  
-Spectral Data File: /data/chensj/eROSITA/Xstack_new/demo/data/sample.src  Spectrum 1
+Spectral Data File: /data/chensj/eROSITA/Xstack-full/demo/data/sample.src  Spectrum 1
 Net count rate (cts/s) for Spectrum:1  8.157e-01 +/- 1.679e-02 (92.9 % total)
  Assigned to Data Group 1 and Plot Group 1
   Noticed Channels:  1-1024
@@ -179,7 +150,7 @@ XSPEC12>
 XSPEC12>fakeit
  Use counting statistics in creating fake data? (y): 
  Input optional fake file prefix: 
- Fake data file name (sample.fak): 00105_pobb.fak
+ Fake data file name (sample.fak): 00105_pobb.pi
  Exposure time, correction norm, bkg exposure time (3119.78, 1.00000, 3119.78):  2000,1,2000
 
 1 spectrum  in use

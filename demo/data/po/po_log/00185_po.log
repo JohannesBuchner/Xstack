@@ -6,19 +6,7 @@ XSPEC12>model clumin*zpowerlw
 
 Input parameter value, delta, min, bot, top, and max values for ...
             0.5       -0.1(     0.005)          0          0      1e+06      1e+06
-1:clumin:Emin>
-             10       -0.1(       0.1)          0          0      1e+06      1e+06
-2:clumin:Emax>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-3:clumin:Redshift>
-             40       0.01(       0.4)       -100       -100        100        100
-4:clumin:lg10Lum>
-              1       0.01(      0.01)         -3         -2          9         10
-5:zpowerlw:PhoIndex>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-6:zpowerlw:Redshift>
-              1       0.01(      0.01)          0          0      1e+20      1e+24
-7:zpowerlw:norm>
+1:clumin:Emin>/*
 
 ========================================================================
 Model clumin<1>*zpowerlw<2> Source No.: 1   Active/Off
@@ -44,7 +32,7 @@ XSPEC12>show
 
 XSPEC version: 12.13.1
 
-Tue Jul 30 20:14:54 2024
+Tue Dec 31 11:08:41 2024
  Auto-saving is done after every command.
  Minimization technique: Levenberg-Marquardt
     Convergence criterion = 0.01
@@ -101,11 +89,11 @@ No active models
 Bayes is off
 
 XSPEC12>
-XSPEC12>data /data/chensj/eROSITA/Xstack_new/demo/data/sample.src
+XSPEC12>data /data/chensj/eROSITA/Xstack-full/demo/data/sample.src
 
 1 spectrum  in use
  
-Spectral Data File: /data/chensj/eROSITA/Xstack_new/demo/data/sample.src  Spectrum 1
+Spectral Data File: /data/chensj/eROSITA/Xstack-full/demo/data/sample.src  Spectrum 1
 Net count rate (cts/s) for Spectrum:1  8.157e-01 +/- 1.679e-02 (92.9 % total)
  Assigned to Data Group 1 and Plot Group 1
   Noticed Channels:  1-1024
@@ -130,6 +118,44 @@ Test statistic : Chi-Squared                 5736.84     using 1024 bins.
 
  Null hypothesis probability of 0.00e+00 with 1022 degrees of freedom
  Current data and model not fit yet.
+XSPEC12>none
+invalid command name "none"
+XSPEC12>none
+invalid command name "none"
+XSPEC12>none
+invalid command name "none"
+XSPEC12>
+XSPEC12>response /data/chensj/eROSITA/Xstack-full/demo/data/sample.rmf
+Response successfully loaded.
+
+Fit statistic  : Chi-Squared                 5505.82     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                 5505.82     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1022 degrees of freedom
+ Current data and model not fit yet.
+XSPEC12>
+XSPEC12>arf /data/chensj/eROSITA/Xstack-full/demo/data/sample.arf
+Arf successfully loaded.
+
+Fit statistic  : Chi-Squared                 5736.84     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                 5736.84     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1022 degrees of freedom
+ Current data and model not fit yet.
 XSPEC12>
 XSPEC12>xset seed 185
 
@@ -139,7 +165,7 @@ XSPEC12>
 XSPEC12>fakeit
  Use counting statistics in creating fake data? (y): 
  Input optional fake file prefix: 
- Fake data file name (sample.fak): 00185_po.fak
+ Fake data file name (sample.fak): 00185_po.pi
  Exposure time, correction norm, bkg exposure time (3119.78, 1.00000, 3119.78):  2000,1,2000
 
 1 spectrum  in use

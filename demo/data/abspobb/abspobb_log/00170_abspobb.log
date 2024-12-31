@@ -6,37 +6,7 @@ XSPEC12>model tbabs*(clumin*zpowerlw+const*clumin*zbbody)
 
 Input parameter value, delta, min, bot, top, and max values for ...
               1      0.001(      0.01)          0          0     100000      1e+06
-1:TBabs:nH>
-            0.5       -0.1(     0.005)          0          0      1e+06      1e+06
-2:clumin:Emin>
-             10       -0.1(       0.1)          0          0      1e+06      1e+06
-3:clumin:Emax>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-4:clumin:Redshift>
-             40       0.01(       0.4)       -100       -100        100        100
-5:clumin:lg10Lum>
-              1       0.01(      0.01)         -3         -2          9         10
-6:zpowerlw:PhoIndex>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-7:zpowerlw:Redshift>
-              1       0.01(      0.01)          0          0      1e+20      1e+24
-8:zpowerlw:norm>
-              1       0.01(      0.01)          0          0      1e+10      1e+10
-9:constant:factor>
-            0.5       -0.1(     0.005)          0          0      1e+06      1e+06
-10:clumin:Emin>
-             10       -0.1(       0.1)          0          0      1e+06      1e+06
-11:clumin:Emax>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-12:clumin:Redshift>
-             40       0.01(       0.4)       -100       -100        100        100
-13:clumin:lg10Lum>
-              3       0.01(      0.03)     0.0001       0.01        100        200
-14:zbbody:kT>
-              0      -0.01(      0.01)     -0.999     -0.999         10         10
-15:zbbody:Redshift>
-              1       0.01(      0.01)          0          0      1e+20      1e+24
-16:zbbody:norm>
+1:TBabs:nH>/*
 
 ========================================================================
 Model TBabs<1>(clumin<2>*zpowerlw<3> + constant<4>*clumin<5>*zbbody<6>) Source No.: 1   Active/Off
@@ -77,7 +47,6 @@ you will also have to set the abundances:
 Note that this routine ignores the current cross section setting
 as it always HAS to use the Verner cross sections as a baseline.
 XSPEC12>
-XSPEC12>
 XSPEC12>newpar 1 0.07918210395041539
 XSPEC12>newpar 3 2
 XSPEC12>newpar 4 0.8395160958476733
@@ -85,7 +54,7 @@ XSPEC12>newpar 5 44.85570517098388
 XSPEC12>newpar 6 1.996885689102875
 XSPEC12>newpar 7 0.8395160958476733
 XSPEC12>newpar 8 1 -1
-XSPEC12>newpar 9 0.21585964403734026
+XSPEC12>newpar 9 0.31672841580166156
 XSPEC12>newpar 11 2
 XSPEC12>newpar 12 0.8395160958476733
 XSPEC12>newpar 13=5
@@ -96,7 +65,7 @@ XSPEC12>show
 
 XSPEC version: 12.13.1
 
-Tue Jul 30 22:17:45 2024
+Tue Dec 31 14:24:27 2024
  Auto-saving is done after every command.
  Minimization technique: Levenberg-Marquardt
     Convergence criterion = 0.01
@@ -146,7 +115,7 @@ Model Model Component  Parameter  Unit     Value
    6    3   zpowerlw   PhoIndex            1.99689      +/-  0.0          
    7    3   zpowerlw   Redshift            0.839516     frozen
    8    3   zpowerlw   norm                1.00000      frozen
-   9    4   constant   factor              0.215860     +/-  0.0          
+   9    4   constant   factor              0.316728     +/-  0.0          
   10    5   clumin     Emin       keV      0.500000     frozen
   11    5   clumin     Emax       keV      2.00000      frozen
   12    5   clumin     Redshift            0.839516     frozen
@@ -162,11 +131,11 @@ No active models
 Bayes is off
 
 XSPEC12>
-XSPEC12>data /data/chensj/eROSITA/Xstack_new/demo/data/sample.src
+XSPEC12>data /data/chensj/eROSITA/Xstack-full/demo/data/sample.src
 
 1 spectrum  in use
  
-Spectral Data File: /data/chensj/eROSITA/Xstack_new/demo/data/sample.src  Spectrum 1
+Spectral Data File: /data/chensj/eROSITA/Xstack-full/demo/data/sample.src  Spectrum 1
 Net count rate (cts/s) for Spectrum:1  8.157e-01 +/- 1.679e-02 (92.9 % total)
  Assigned to Data Group 1 and Plot Group 1
   Noticed Channels:  1-1024
@@ -179,12 +148,51 @@ Net count rate (cts/s) for Spectrum:1  8.157e-01 +/- 1.679e-02 (92.9 % total)
  Using Auxiliary Response (ARF) File  sample.arf
 
 
-Fit statistic  : Chi-Squared                 6165.44     using 1024 bins.
+Fit statistic  : Chi-Squared                 6165.92     using 1024 bins.
 
 ***Warning: Chi-square may not be valid due to bins with zero variance
             in spectrum number: 1
 
-Test statistic : Chi-Squared                 6165.44     using 1024 bins.
+Test statistic : Chi-Squared                 6165.92     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1019 degrees of freedom
+ Current data and model not fit yet.
+XSPEC12>
+XSPEC12>none
+invalid command name "none"
+XSPEC12>none
+invalid command name "none"
+XSPEC12>none
+invalid command name "none"
+XSPEC12>
+XSPEC12>response /data/chensj/eROSITA/Xstack-full/demo/data/sample.rmf
+Response successfully loaded.
+
+Fit statistic  : Chi-Squared                 5508.78     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                 5508.78     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number(s): 1 
+
+ Null hypothesis probability of 0.00e+00 with 1019 degrees of freedom
+ Current data and model not fit yet.
+XSPEC12>
+XSPEC12>arf /data/chensj/eROSITA/Xstack-full/demo/data/sample.arf
+Arf successfully loaded.
+
+Fit statistic  : Chi-Squared                 6165.92     using 1024 bins.
+
+***Warning: Chi-square may not be valid due to bins with zero variance
+            in spectrum number: 1
+
+Test statistic : Chi-Squared                 6165.92     using 1024 bins.
 
 ***Warning: Chi-square may not be valid due to bins with zero variance
             in spectrum number(s): 1 
@@ -200,18 +208,18 @@ XSPEC12>
 XSPEC12>fakeit
  Use counting statistics in creating fake data? (y): 
  Input optional fake file prefix: 
- Fake data file name (sample.fak): 00170_abspobb.fak
+ Fake data file name (sample.fak): 00170_abspobb.pi
  Exposure time, correction norm, bkg exposure time (3119.78, 1.00000, 3119.78):  2000,1,2000
 
 1 spectrum  in use
  
 
-Fit statistic  : Chi-Squared                27664.68     using 1024 bins.
+Fit statistic  : Chi-Squared                27267.95     using 1024 bins.
 
 ***Warning: Chi-square may not be valid due to bins with zero variance
             in spectrum number: 1
 
-Test statistic : Chi-Squared                27664.68     using 1024 bins.
+Test statistic : Chi-Squared                27267.95     using 1024 bins.
 
 ***Warning: Chi-square may not be valid due to bins with zero variance
             in spectrum number(s): 1 
