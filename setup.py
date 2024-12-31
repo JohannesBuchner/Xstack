@@ -8,14 +8,23 @@ setup(
     author_email='JohnnyCsj666@gmail.com',
     url='https://github.com/AstroChensj/Xstack.git',
     #packages=find_packages(),
-    packages=['Xstack'],
+    packages=['Xstack','scripts'],
     install_requires=[
         'astropy',
         'numpy',
         'scipy',
+        'pandas',
         'tqdm',
+        'numba',
         'sfdmap',
+        'joblib',
     ],
-    package_data={'': ['**/tbabs_1e20.txt']},
-    scripts=['scripts/runXstack.py'],
+    package_data={'': ['**/tbabs_1e20.txt'],
+                  'Xstack': ["fkspec_sh/*.sh"]},
+    #scripts=['scripts/runXstack.py'],
+    entry_points={
+        'console_scripts': [
+            'runXstack = scripts.Xstack_autoscript:main'
+        ]
+    }
 )
