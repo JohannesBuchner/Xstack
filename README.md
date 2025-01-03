@@ -145,7 +145,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   #nh_lst = [...]
   
   # run Xstack
-  XstackRunner(
+  resample_XstackRunner(
       pifile_lst=pifile_lst,                          # PI file list
       arffile_lst=arffile_lst,                        # ARF file list
       rmffile_lst=rmffile_lst,                        # RMF file list
