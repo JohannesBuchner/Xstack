@@ -12,7 +12,7 @@ To tackle these issues, we develop <span style="font-family: 'Courier New', Cour
 
 ## Key features of <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
 
-1) properly account account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 
+1) properly account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 
 2) preserve Poisson statistics; 
 3) support Galactic absorption correction, if an additional ***NH*** value (in units of 1 $\text{cm}^{-2}$) for each spectrum is given.
 
@@ -22,8 +22,19 @@ To install <span style="font-family: 'Courier New', Courier, monospace; font-wei
 ```shell
 git clone https://github.com/AstroChensj/Xstack.git
 cd Xstack
-pip install .
+python -m pip install .
 ```
+`python -m` ensures that all required packages are installed for your current conda environment only (i.e., the path where your python is called, `which python`).
+
+Troubleshooting:
+
+- If you encounter network issues (e.g., `Port 443`) when installing with `https`, try `ssh` instead:
+  
+  ```shell
+  ssh -T git@github.com
+  git clone git@github.com:AstroChensj/Xstack.git
+  ```
+
 ## How to use <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
 Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from command line, or invoke it as a module in python.
 
