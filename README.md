@@ -28,7 +28,7 @@ python -m pip install .
 
 Troubleshooting:
 
-- If you encounter network issues (e.g., `Port 443`) when installing with `https`, try `ssh` instead:
+- If you encounter network issues (e.g., `Port 443`) when installing with `https`, try `ssh` instead (see [this link](https://stackoverflow.com/questions/2643502/git-how-to-solve-permission-denied-publickey-error-when-using-git) for setup of github `ssh`):
   
   ```shell
   ssh -T git@github.com
@@ -49,7 +49,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   
   - And you will get the stacked spectra `stack.pi`, `stackbkg.pi`, and stacked response files `stack.arf`, `stack.rmf`. 
   
-  - `runXstack` is the alias for `python3 /path/to/your/Xstack/scripts/Xstack_autoscript.py`, which should be set automatically after `pip install .`.
+  - `runXstack` is the alias for `python3 /path/to/your/Xstack/scripts/Xstack_autoscript.py`, which should be set automatically after `python -m pip install .`.
   
   - `your_filelist.txt` stores the absolute path of the PI spectrum file for each source. The PI spectrum should follow OGIP standards – its header (of extension `SPECTRUM`) should have keywords helping <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> to find the corresponding bkg PI spectrum file (`BACKFILE`), the RMF (`RESPFILE`) and ARF (`ANCRFILE`).
   
