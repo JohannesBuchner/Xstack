@@ -15,12 +15,13 @@ from joblib import Parallel,delayed
 from tqdm import tqdm
 from Xstack.shift_arf import align_arf
 from Xstack.shift_rmf import get_prob,get_prob1d
+from Xstack.shift_pi import get_bkgscal,get_expo
 
 
 #===================================================
 ##################### grppi ########################
 #===================================================
-def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None):
+def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=None,bkg_name=None,min_net=0):
     '''
     Add `GROUPING` column to the source PI file.
     
@@ -32,17 +33,22 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
     ----------
     src_name : str
         Input source PI file name.
-    grp_name : str
-        Output grouped PI file name.
+    grp_name : str, optional
+        Output grouped PI file name. If not specified, will not create output file.
     method : str, optional
         Grouping method. Available methods:
         - `EDGE`: Group by fixed energy bin edges. Edges provided by `eelo` and `eehi`.
+        - `MIN_NET`: Group by minimum net counts (src-bkg*bkgscal). Needs to specify the bkg_name and min_net in each group.
     rmf_file : str
         (for `EDGE` method) RMF file name. If not specified, the code will automatically search the header of `src_name`.
     eelo : numpy.ndarray
         (for `EDGE` method) Lower edge of fixed energy bin.
     eehi : numpy.ndarray
         (for `EDGE` method) Upper edge of fixed energy bin.
+    bkg_name : str, optional
+        Background file name used in `MIN_NET` mode. Defaults to None. If not specified, will look for it in the header of src_name.
+    min_net : float or int, optional
+        Minimum net counts in each group in `MIN_NET` mode. Defaults to 0.
     
     Returns
     -------
@@ -54,8 +60,8 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
             raise Exception('Please specify `eelo` and `eehi` in method `EDGE`!')
         # find channel energy in EBOUNDS extension of RMF file
         with fits.open(src_name) as hdu:
-            data = hdu[1].data
-            head = hdu[1].header
+            data = hdu['SPECTRUM'].data
+            head = hdu['SPECTRUM'].header
             chan = data['CHANNEL']
             try:
                 src_rmf = head['RESPFILE']
@@ -96,18 +102,58 @@ def make_grpflg(src_name,grp_name,method='EDGE',rmf_file='',eelo=None,eehi=None)
             eeid_bk.append(eeid[mask])
         
         # create output file
-        shutil.copy(src_name,grp_name)
-        with fits.open(grp_name,mode='update') as hdu:
-            SPECTRUM = hdu[1]
-            if 'GROUPING' in SPECTRUM.columns.names:
-                SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
-            GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
-            SPECTRUM.data = fits.BinTableHDU.from_columns(SPECTRUM.columns + GROUPING).data
+        if grp_name is not None:
+            shutil.copy(src_name,grp_name)
+            with fits.open(grp_name,mode='update') as hdu:
+                SPECTRUM = hdu[1]
+                if 'GROUPING' in SPECTRUM.columns.names:
+                    SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
+                GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
+                SPECTRUM.data = fits.BinTableHDU.from_columns(SPECTRUM.columns + GROUPING).data
         
         return grpflg
     
+    elif method == "MIN_NET":
+        with fits.open(src_name) as hdu:
+            data = hdu['SPECTRUM'].data
+            src_chan = data['CHANNEL']
+            src_coun = data['COUNTS']
+            head = hdu['SPECTRUM'].header
+        if bkg_name is None:
+            bkg_name = head['BACKFILE']
+        assert os.path.exists(bkg_name), 'Background file does not exist!'
+        with fits.open(bkg_name) as hdu:
+            data = hdu['SPECTRUM'].data
+            bkg_chan = data['CHANNEL']
+            bkg_coun = data['COUNTS']
+        assert len(src_chan) == len(bkg_chan), f"src channel ({len(src_chan)}) and bkg channel ({len(bkg_chan)}) do not match!"
+        bkgscal = get_bkgscal(src_name,bkg_name)
+
+        # make grouping flag
+        grpflg = np.ones(len(src_chan))
+        net_cts = 0
+        for i in range(len(src_chan)):
+            net_cts += src_coun[i] - bkg_coun[i]*bkgscal
+            if net_cts > min_net:
+                grpflg[i] = 1   # 1 for end of the group
+                net_cts = 0
+            else:
+                grpflg[i] = -1  # -1 for continuing the group
+
+        # create output file
+        if grp_name is not None:
+            shutil.copy(src_name,grp_name)
+            with fits.open(grp_name,mode='update') as hdu:
+                SPECTRUM = hdu[1]
+                if 'GROUPING' in SPECTRUM.columns.names:
+                    SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
+                GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
+                SPECTRUM.data = fits.BinTableHDU.from_columns(SPECTRUM.columns + GROUPING).data
+
+        return grpflg
+    
     else:
-        raise Exception('Available method for grppi: EDGE!')
+        raise Exception('Available method for grppi: EDGE, MIN_NET!')
 
 
 def rebin_pi(ene_lo,ene_hi,coun,coun_err,grpflg):
@@ -255,6 +301,132 @@ def rebin_arf(arfene_lo,arfene_hi,specresp,ene_lo,ene_hi,coun,grpflg,prob=None):
     grpspecresp = np.array(grpspecresp)
         
     return grpene_lo,grpene_hi,grpspecresp
+
+
+def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_name=None,normalize_at=None,outname=None,plot=False,ax=None,**kwargs):
+    """
+    Make data/arf plot.
+
+    Parameters
+    ----------
+    src_name : str
+        Source spectrum file name.
+    bkg_name : str, optional
+        Background spectrum file name. If not specified, will look for it in the header of src_name.
+    arf_name : str, optional
+        ARF file name. If not specified, will look for it in the header of src_name.
+    rmf_name : str, optional
+        RMF file name. If not specified, will look for it in the header of src_name.
+    grp_name : str, optional
+        Grouping file name. Only uses its 'GROUPING' column.
+    normalize_at : int or float, optional
+        Output spectrum normalized at some energy (keV). Defaults to None.
+    outname : str, optional
+        Output file name. If not specified, will not create output file name.
+    plot : bool, optional
+        Whether or not to make a plot. Defaults to False.
+    ax : matplotlib.axes.Axes, optional
+        The axes to make the plot. Defaults to None.
+    **kwargs
+
+    Returns
+    -------
+    grpene_lo : numpy.ndarray
+        Lower bounds of grouped energy.
+    grpene_hi : numpy.ndarray
+        Upper bounds of grouped energy.
+    ratio : numpy.ndarray
+        Data/arf ratio, in units of cts/s/cm^2/keV.
+    ratioerr : numpy.ndarray
+        Error of data/arf ratio.
+
+    """
+    with fits.open(src_name) as hdu:
+        data = hdu['SPECTRUM'].data
+        src_chan = data['CHANNEL']
+        src_coun = data['COUNTS']
+        src_counerr = np.sqrt(src_coun)
+        head = hdu['SPECTRUM'].data
+    expo = get_expo(src_name)
+    
+    if bkg_name is None:
+        bkg_name = head['BACKFILE']
+    assert os.path.exists(bkg_name), 'Background file does not exist!'
+    with fits.open(bkg_name) as hdu:
+        data = hdu['SPECTRUM'].data
+        bkg_chan = data['CHANNEL']
+        bkg_coun = data['COUNTS']
+        bkg_counerr = np.sqrt(bkg_coun)
+    bkgscal = get_bkgscal(src_name,bkg_name)
+
+    if arf_name is None:
+        arf_name = head['ANCRFILE']
+    assert os.path.exists(arf_name), 'ARF file does not exist!'
+    with fits.open(arf_name) as hdu:
+        arf = hdu['SPECRESP'].data
+    arfene_lo = arf['ENERG_LO']
+    arfene_hi = arf['ENERG_HI']
+    arfene_ce = (arfene_hi + arfene_lo)/2
+    arfene_wd = arfene_hi - arfene_lo
+    specresp = arf['SPECRESP']
+
+    if rmf_name is None:
+        rmf_name = head['RESPFILE']
+    assert os.path.exists(rmf_name), 'RMF file does not exist!'
+    with fits.open(rmf_name) as hdu:
+        mat = hdu['MATRIX'].data
+        ebo = hdu['EBOUNDS'].data
+    ene_lo = ebo['E_MIN']
+    ene_hi = ebo['E_MAX']
+    ene_ce = (ene_lo + ene_hi)/2
+    ene_wd = ene_hi - ene_lo
+
+    if grp_name is not None:
+        with fits.open(grp_name) as hdu:
+            data = hdu['SPECTRUM'].data
+        grpflg = data['GROUPING']
+        assert len(grpflg) == len(src_chan), f"Channel number ({len(src_chan)}) and Grouping flag length ({len(grpflg)}) do not match!"
+    else:
+        grpflg = np.ones(len(grpene_ce))
+
+    grpene_lo,grpene_hi,grpsrc_coun,grpsrc_counerr = rebin_pi(ene_lo,ene_hi,src_coun,src_counerr,grpflg)
+    grpene_lo,grpene_hi,grpbkg_coun,grpbkg_counerr = rebin_pi(ene_lo,ene_hi,bkg_coun,bkg_counerr,grpflg)
+    grpene_wd = grpene_hi - grpene_lo
+    grpene_ce = (grpene_lo + grpene_hi) / 2
+    grpene_lo,grpene_hi,grpspecresp = rebin_arf(arfene_lo,arfene_hi,specresp,ene_lo,ene_hi,src_coun-bkg_coun*bkgscal,grpflg)
+
+    subtract = grpsrc_coun - grpbkg_coun*bkgscal
+    subtracterr = np.sqrt(grpsrc_counerr**2 + grpbkg_counerr**2*bkgscal**2)
+    ratio = subtract / grpspecresp / grpene_wd / expo
+    ratioerr = subtracterr / grpspecresp / grpene_wd / expo
+
+    if normalize_at is not None:
+        normalize_idx = np.argmin(abs(grpene_ce-4))
+        ratio = ratio / ratio[normalize_idx]
+        ratioerr = ratioerr / ratio[normalize_idx]
+
+    if outname is not None:
+        hdu_lst = fits.HDUList()
+        hdu_primary = fits.PrimaryHDU()
+        hdu_lst.append(hdu_primary)
+
+        arrays = [grpene_lo,grpene_hi,ratio,ratioerr]
+        colnames = ['GRPE_MIN','GRPE_MAX','RATIO','RATIO_ERR']
+        formats = ['D','D','D','D']
+        units = ['keV','keV','cts/s/cm^2/keV','cts/s/cm^2/keV']
+
+        columns = [fits.Column(name=colname_,array=array_,format=format_,unit=unit_) for colname_,array_,format_,unit_ in zip(colnames,arrays,formats,units)]
+        hdu_data = fits.BinTableHDU.from_columns(columns,name='DATAARF')
+        hdu_lst.append(hdu_data)
+
+        hdu_lst.writeto(outname,overwrite=True)
+
+    if plot:
+        if ax is None:
+            ax = plt.gca()
+        ax.errorbar(grpene_ce,ratio*grpene_ce**2,yerr=(ratioerr*grpene_ce**2),**kwargs)
+
+    return grpene_lo,grpene_hi,ratio,ratioerr
 
 
 #===================================================
