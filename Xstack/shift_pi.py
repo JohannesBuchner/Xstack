@@ -3,6 +3,7 @@
 ##############################################
 import numpy as np
 from astropy.io import fits
+import os
 
 
 def shift_pi(pi_file,rmf_file,z,ene_trc=None):
@@ -32,8 +33,8 @@ def shift_pi(pi_file,rmf_file,z,ene_trc=None):
         Photon counts in each observed-frame channel.
     '''
     with fits.open(rmf_file) as hdu:
-        mat = hdu['MATRIX'].data # default: matrix stored in table 1
-        ebo = hdu['EBOUNDS'].data # ebounds
+        mat = hdu['MATRIX'].data
+        ebo = hdu['EBOUNDS'].data
     
     chan = ebo['CHANNEL']
     ene_lo = ebo['E_MIN']
@@ -43,7 +44,7 @@ def shift_pi(pi_file,rmf_file,z,ene_trc=None):
     ene_id = np.arange(len(ene_ce))
     
     with fits.open(pi_file) as hdu:
-        pi = hdu[1].data # default: matrix stored in table 1
+        pi = hdu['SPECTRUM'].data
     pi_chan = pi['CHANNEL'] # pi_chan starts from 0
     pi_coun = pi['COUNTS'] # the obs-frame photon counts
     assert (pi_chan == chan).all()
@@ -326,7 +327,7 @@ def add_bkgpi(bkgpi_lst,bkgscal_lst,Ngrp=10,fits_name=None,expo=10):
     return bkgpi,bkgpi_err
 
 
-def get_bkgscal(src_file,bkg_file):
+def get_bkgscal(src_file,bkg_file=None):
     '''
     Get scaling ratio for some background spectrum:
         `scaling ratio = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo`
@@ -335,8 +336,8 @@ def get_bkgscal(src_file,bkg_file):
     ----------
     src_file : str
         Source PI spectrum name.
-    bkg_file : str
-        Background PI spectrum name.
+    bkg_file : str, optional
+        Background PI spectrum name. If not specified, will look for it from the header of src_file.
     
     Returns
     -------
@@ -344,13 +345,19 @@ def get_bkgscal(src_file,bkg_file):
         Background scaling ratio.
     '''
     with fits.open(src_file) as hdu:
-        src_expo = hdu[1].header['EXPOSURE']
-        src_areascal = hdu[1].header['AREASCAL']
-        src_backscal = hdu[1].header['BACKSCAL']
+        head = hdu['SPECTRUM'].header
+    src_expo = head['EXPOSURE']
+    src_areascal = head['AREASCAL']
+    src_backscal = head['BACKSCAL']
+
+    if bkg_file is None:
+        bkg_file = head['BACKFILE']
+    assert os.path.exists(bkg_file), 'Background file does not exist!'
     with fits.open(bkg_file) as hdu:
-        bkg_expo = hdu[1].header['EXPOSURE']
-        bkg_areascal = hdu[1].header['AREASCAL']
-        bkg_backscal = hdu[1].header['BACKSCAL']
+        head = hdu['SPECTRUM'].header
+    bkg_expo = head['EXPOSURE']
+    bkg_areascal = head['AREASCAL']
+    bkg_backscal = head['BACKSCAL']
     bkgscal = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo
     return bkgscal
 
@@ -370,7 +377,7 @@ def get_expo(src_file):
         Source exposure time.
     '''
     with fits.open(src_file) as hdu:
-        src_expo = hdu[1].header['EXPOSURE']
+        src_expo = hdu['SPECTRUM'].header['EXPOSURE']
     return src_expo
 
 
