@@ -8,7 +8,7 @@ X-ray spectral stacking is **non-trivial** compared to optical spectral stacking
 1) X-ray has much fewer photon counts (Poisson), meaning that spectral **counts and uncertainties cannot be scaled simultaneously** (as compared to optical);
 2) X-ray has non-diagonal, complex response, meaning that the **response needs to be taken into account** when stacking.
 
-To tackle these issues, we develop <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>: a open-source, and comprehensive standalone pipeline code for X-ray spectral stacking. The methodology is to first sum all (rest-frame) PI spectra, without any scaling; and then sum the response files (ARFs and RMFs), each with appropriate weighting factors to preserve the overall spectral shape.
+To tackle these issues, we develop <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>: a open-source, and comprehensive standalone pipeline code for X-ray spectral stacking. The methodology is to first sum all (rest-frame) PI spectra, without any scaling; and then sum the response files (ARFs and RMFs), each with appropriate weighting factors to preserve the overall spectral shape. The preservation of Poisson statistics for the data (and Gaussian for the background) ensures the validity of subsequent spectral fitting (via e.g., XSPEC).
 
 ## Key features of <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
 
@@ -36,7 +36,7 @@ Troubleshooting:
   ```
 
 ## How to use <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
-Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from command line, or invoke it as a module in python.
+Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from command line, or invoke it as a module in python. In either case, <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> requires as input the individual source `PI` spectra, background `PI` spectra (with proper `BACKSCAL` parameters), effective area curve `ARF`s (extracted for source region), and response matrix `RMF`s. The output will be the stacked source `PI` spectrum, stacked background `PI` spectrum (already scaled), stacked `ARF`, and stacked `RMF`.
 
 ### 1. Command line version
 
