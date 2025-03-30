@@ -14,7 +14,7 @@ To tackle these issues, we develop <span style="font-family: 'Courier New', Cour
 
 1) properly account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 
 2) preserve Poisson statistics; 
-3) support Galactic absorption correction, if an additional ***NH*** value (in units of 1 $\text{cm}^{-2}$) for each spectrum is given.
+3) support Galactic absorption correction, if an additional ***nH*** value (in units of 1 $\text{cm}^{-2}$) for each spectrum is given.
 
 ## Prerequisites and Installation
 
@@ -36,7 +36,27 @@ Troubleshooting:
   ```
 
 ## How to use <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
-Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from command line, or invoke it as a module in python. In either case, <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> requires as input the individual source `PI` spectra, background `PI` spectra (with proper `BACKSCAL` parameters), effective area curve `ARF`s (extracted for source region), and response matrix `RMF`s. The output will be the stacked source `PI` spectrum, stacked background `PI` spectrum (already scaled), stacked `ARF`, and stacked `RMF`.
+Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from **command line**, or invoke it as a **python module**. 
+
+In either case, <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> requires the following as input:
+
+- the individual source `PI` spectra, with proper headers following OGIP standards; additional redshift file (with `.z` extension) and Galactic nH file (with `.nh` extension) under the same directory as each source `PI` spectrum;
+  
+- background `PI` spectra (with proper `BACKSCAL` parameters);
+  
+- effective area curve `ARF`s (extracted for source region);
+
+- and response matrix `RMF`s.
+
+The output will be: 
+
+- the stacked source `PI` spectrum;
+
+- stacked background `PI` spectrum (already scaled);
+
+- stacked `ARF`;
+
+- and stacked `RMF`.
 
 ### 1. Command line version
 
@@ -51,7 +71,15 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   
   - `runXstack` is the alias for `python3 /path/to/your/Xstack/scripts/Xstack_autoscript.py`, which should be set automatically after `python -m pip install .`.
   
-  - `your_filelist.txt` stores the absolute path of the PI spectrum file for each source. The PI spectrum should follow OGIP standards – its header (of extension `SPECTRUM`) should have keywords helping <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> to find the corresponding bkg PI spectrum file (`BACKFILE`), the RMF (`RESPFILE`) and ARF (`ANCRFILE`).
+  - `your_filelist.txt` stores the absolute path of the PI spectrum file for each source. The PI spectrum should follow OGIP standards – its header (of extension `SPECTRUM`) should have keywords helping <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> to find the corresponding bkg PI spectrum file (`BACKFILE`), the RMF (`RESPFILE`) and ARF (`ANCRFILE`). An example would be:
+ 
+    ```
+    /path/to/your/PI_001.fits
+    /path/to/your/PI_002.fits
+    /path/to/your/PI_003.fits
+    # ...
+    ```
+    Note that under each directory, it is assumed there exist a redshift file and Galactic nH file, with naming convention like `/path/to/your/PI_001.fits.z` and `/path/to/your/PI_001.fits.nh`. The redshift value and Galactic nH value ([1 cm^-2]) are stored in these two files, separately.
   
   - `1.0` and `2.3`  are lower/upper end of the energy range (in keV) for computing flux. The flux represents the contribution from each source’s PI spectrum to the total stacked spectrum, and will be used as the weighting factors when stacking ARFs/RMFs.
   
@@ -84,7 +112,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   |`filelist`|text file containing the file names|--|
   |`flux_energy_lo`|lower end of the energy range in keV for computing flux|--|
   |`flux_energy_hi`|upper end of the energy range in keV for computing flux|--|
-  |`arf_scale_method`|method to calculate ARF weighting factor for each source; `FLX`: assuming all sources have same energy flux (weigh by exposure time), `LMN`: assuming all sources have same luminosity (weigh by exposure/dist^2), `SHP`: assuming all sources have same spectral shape|SHP|
+  |`arf_scale_method`|method to calculate ARF weighting factor for each source; `SHP`: assuming all sources have same spectral shape (the minimum assumption, recommended), `FLX`: assuming all sources have same spectral shape and energy flux (i.e., weigh by exposure time, could be used when source photon count is **very** low), `LMN`: assuming all sources have same spectral shape and luminosity (i.e., weigh by exposure/dist^2), |SHP|
   |`--outsrc`|source PI output file name, or basename in resample mode|stack.pi|
   |`--outbkg`|Background PI output file name, or basename in resample mode|stackbkg.pi|
   |`--outrmf`|RMF output file name, or basename in resample mode|stack.rmf|  
@@ -109,7 +137,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   ```python
   from Xstack.Xstack import XstackRunner
   
-  ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic NHs ...
+  ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic nHs ...
   #pifile_lst = [...]
   #bkgpifile_lst = [...]
   #rmffile_lst = [...]
@@ -147,7 +175,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
   ```py
   from Xstack.Xstack import resample_XstackRunner
   
-  ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic NHs ...
+  ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic nHs ...
   #pifile_lst = [...]
   #bkgpifile_lst = [...]
   #rmffile_lst = [...]
