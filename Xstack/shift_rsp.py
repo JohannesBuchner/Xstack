@@ -2,6 +2,7 @@ import numpy as np
 from astropy.io import fits
 from numba import jit
 from astropy.cosmology import Planck18
+from tqdm import tqdm
 
 
 
@@ -93,7 +94,7 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
     else:
         raise Exception('Available rmfsft_method (RMF shifting method): `PAR` or `NONPAR` (see help(shift_rmf) for illustration)!')   
 
-    del mat,ebo 
+    del mat,ebo,prob
 
     return rspmat_sft
 
@@ -182,7 +183,7 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
     expo_lst = np.array(expo_lst)
 
     rsp1d_lst = [[] for _ in range(len(rspmat_lst))]    # 1d specresp profile = 2d rsp matrix projected on output channel energy axis
-    for i in range(len(rsp1d_lst)):
+    for i in tqdm(range(len(rsp1d_lst))):
         rsp1d_lst[i] = project_rspmat(rspmat_lst[i],ene_lo,ene_hi,arfene_lo,arfene_hi)
     
     rsp1d_lst = np.array(rsp1d_lst)

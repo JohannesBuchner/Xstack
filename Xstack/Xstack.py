@@ -205,7 +205,7 @@ class XstackRunner:
         # if self.fene_name is not None:
         #     fene_fits(self.srcid_lst,self.arffene_lst,self.fene_lst,self.fene_name)
 
-        del self.rmf_sft_lst # to clear memory
+        del self.rspmat_sft_lst # to clear memory
         
         return pi_stk, pierr_stk, bkgpi_stk, bkgpierr_stk, arf_stk, rmf_stk
     
