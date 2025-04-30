@@ -322,7 +322,7 @@ def add_rmf(prob_lst,arf_file,expo_lst=None,fits_name=None,sample_rmf='sample.rm
 
 def get_prob(mat,ebo):
     '''
-    Get the RMF 2D probability matrix. 
+    Parse the RMF file (input the `MATRIX` and `EBOUNDS` extension) into a 2D probability matrix. 
 
     Parameters
     ----------
