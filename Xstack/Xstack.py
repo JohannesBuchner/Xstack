@@ -154,7 +154,7 @@ class XstackRunner:
         print(f"Number of sources: {len(self.pifile_lst)}")
         print(f"Redshift range: {np.min(self.z_lst):.3f} -- {np.max(self.z_lst):.3f}")
         print(f"NH range: {np.min(self.nh_lst)} -- {np.max(self.nh_lst)}")
-        print(f"NH file: {self.nh_file if self.nh_file is not None else "None"}")
+        print(f"NH file: {self.nh_file if self.nh_file is not None else 'None'}")
         print(f"RSP weighting method: {self.rspwt_method}")
         print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV")
         print(f"ARF Truncation energy: {self.ene_trc} keV")
