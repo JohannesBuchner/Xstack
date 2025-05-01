@@ -2,6 +2,7 @@ import numpy as np
 from astropy.io import fits
 from numba import jit
 from astropy.cosmology import Planck18
+import astropy.units as u
 from tqdm import tqdm
 
 
