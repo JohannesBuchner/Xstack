@@ -19,7 +19,7 @@ from .Xstack import XstackRunner
 ###################################
 
 class resample_XstackRunner:
-    '''
+    """
     A batch of `XstackRunner` objects. Used for producing bootstrap (or K-Fold) stacked spectra.
 
     Example usage
@@ -30,20 +30,20 @@ class resample_XstackRunner:
         rmffile_lst = your_rmffile_lst,
         z_lst = your_z_lst,
         bkgpifile_lst = your_bkgpifile_lst,
-        o_dir_name = 'bootstrap',
-        o_pi_basename = 'src.fits',
-        o_bkgpi_basename = 'bkg.fits',
-        o_arf_basename = 'arf.fits',
-        o_rmf_basename = 'rmf.fits',
-        o_fene_basename = 'fene.fits',
+        o_dir_name = "bootstrap",
+        o_pi_basename = "src.fits",
+        o_bkgpi_basename = "bkg.fits",
+        o_arf_basename = "arf.fits",
+        o_rmf_basename = "rmf.fits",
+        o_fene_basename = "fene.fits",
         # and other arguments if you like
     )
     data.run()  # this will produce a batch of bootstrap stacked PIs, bkgPIs, ARFs, RMFs under `bootstrap` directory 
-    '''
-    def __init__(self,pifile_lst,arffile_lst,rmffile_lst,z_lst,
-                 bkgpifile_lst=None,nh_lst=None,srcid_lst=None,arfscal_method='SHP',int_rng=(1.0,2.3),rmfsft_method='PAR',sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,resample_method='bootstrap',num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,
-                 o_dir_name=None,o_pi_basename=None,o_bkgpi_basename=None,o_arf_basename=None,o_rmf_basename=None,o_fene_basename=None):
-        '''
+    """
+    def __init__(
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,resample_method="bootstrap",num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,o_dir_name=None,o_pi_basename=None,o_bkgpi_basename=None,o_arf_basename=None,o_rmf_basename=None,o_fene_basename=None
+        ):
+        """
         Parameters
         ----------
         pifile_lst : list or numpy.ndarray
@@ -60,17 +60,17 @@ class resample_XstackRunner:
             The Galactic absorption column density list (in units of 1 cm^{-2}). Defaults to None.
         srcid_lst : list or numpy.ndarray, optional
             The source ID list. Defaults to None.
-        arfscal_method : str, optional
+        rspwt_method : str, optional
             Method for calculating ARFSCAL. Defaults to `SHP`. Available methods are:
+            - `SHP`: assuming all sources have same spectral shape, recommended
             - `FLX`: assuming all sources have same flux (erg/s/cm^2)
             - `LMN`: assuming all sources have same luminosity (erg/s)
-            - `SHP`: assuming all sources have same spectral shape
         int_rng : tuple of (float,float), optional
             The energy (keV) range for computing flux. Defaults to (1.0,2.3).
         rmfsft_method : str, optional
             The RMF shifting method. Defaults to `NONPAR`. Two methods are available:
-            - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
             - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is more time-consuming than PARameterized method (~10^2 times slower).
+            - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
         sample_rmf : str, optional
             Name of sample RMF. Defaults to None.
         sample_arf : str, optional
@@ -113,13 +113,13 @@ class resample_XstackRunner:
             Basename of output RMF files. Defaults to None (do not produce output files).
         o_fene_basename : str, optional
             Basename of output fenergy files. Defaults to None (do not produce output files).
-        '''
+        """
         self.pifile_lst = np.array(pifile_lst)
         self.arffile_lst = np.array(arffile_lst)
         self.rmffile_lst = np.array(rmffile_lst)
         self.z_lst = np.array(z_lst)
         self.bkgpifile_lst = np.array(bkgpifile_lst)
-        assert len(pifile_lst)==len(arffile_lst)==len(rmffile_lst)==len(z_lst)==len(bkgpifile_lst), 'The input `pifile_lst`(%d), `arffile_lst`(%d), `rmffile_lst`(%d), `z_lst`(%d), and `bkgpifile_lst`(%d) must have same shape! '%(len(pifile_lst),len(arffile_lst),len(rmffile_lst),len(z_lst),len(bkgpifile_lst))
+        assert len(pifile_lst)==len(arffile_lst)==len(rmffile_lst)==len(z_lst)==len(bkgpifile_lst), f"The input `pifile_lst`({len(pifile_lst)}), `arffile_lst`({len(arffile_lst)}), `rmffile_lst`({len(rmffile_lst)}), `z_lst`({len(z_lst)}), and `bkgpifile_lst`({len(bkgpifile_lst)}) must have same shape! "
         if nh_lst is not None:
             self.nh_lst = np.array(nh_lst)
         else:
@@ -128,7 +128,7 @@ class resample_XstackRunner:
             self.srcid_lst = np.array(srcid_lst)
         else:
             self.srcid_lst = np.arange(len(pifile_lst))
-        self.arfscal_method = arfscal_method
+        self.rspwt_method = rspwt_method
         self.int_rng = int_rng
         self.rmfsft_method = rmfsft_method
         if sample_rmf is None:
@@ -141,7 +141,7 @@ class resample_XstackRunner:
             self.sample_arf = sample_arf
         self.nh_file = nh_file
         if Nbkggrp > len(pifile_lst):
-            print('Warning! `Nbkggrp` must be smaller than the number of spectra loaded. `Nbkggrp` is now set to 1.')
+            print("Warning! `Nbkggrp` must be smaller than the number of spectra loaded. `Nbkggrp` is now set to 1.")
             self.Nbkggrp = 1
         else:
             self.Nbkggrp = Nbkggrp
@@ -149,15 +149,15 @@ class resample_XstackRunner:
         self.rm_ene_dsp = rm_ene_dsp
         self.usecpu = usecpu
         self.resample_method = resample_method
-        if resample_method not in ['bootstrap','KFold']:
-            raise Exception('`resample_method` invalid (allowed: `bootstrap`, `KFold`) !')
-        if resample_method == 'bootstrap':
+        if resample_method not in ["bootstrap","KFold"]:
+            raise Exception("`resample_method` invalid (allowed: `bootstrap`, `KFold`) !")
+        if resample_method == "bootstrap":
             self.num_bootstrap = num_bootstrap
             self.bootstrap_portion = bootstrap_portion
-        if resample_method == 'KFold':
+        if resample_method == "KFold":
             if Ksort_lst is None:
-                raise Exception('Since you have chosen `KFold` as `resample_method`, you need to specify `Ksort_lst` !')
-            assert len(Ksort_lst) == len(pifile_lst), 'The `Ksort_lst` must have same shape as `pifile_lst`! '
+                raise Exception("Since you have chosen `KFold` as `resample_method`, you need to specify `Ksort_lst` !")
+            assert len(Ksort_lst) == len(pifile_lst), "The `Ksort_lst` must have same shape as `pifile_lst`! "
             self.Ksort_lst = np.array(Ksort_lst)
             self.K = K
         
@@ -174,13 +174,13 @@ class resample_XstackRunner:
         self.XstackRunner_lst = []
 
     def run(self):
-        '''
+        """
         Shift all PIs + bkgPIs + ARFs + RMFs to rest-frame in one go.
-        '''
-        # shutil.rmtree('%s'%self.o_dir_name,ignore_errors=True)
-        # os.mkdir('%s'%self.o_dir_name) # make a directory to store all bootstrapped stacked pi, bkgpi, ARF and RMF files
-        os.system('mkdir -p %s'%(self.o_dir_name))
-        if self.resample_method == 'bootstrap':
+        """
+        # shutil.rmtree("%s"%self.o_dir_name,ignore_errors=True)
+        # os.mkdir("%s"%self.o_dir_name) # make a directory to store all bootstrapped stacked pi, bkgpi, ARF and RMF files
+        os.system(f"mkdir -p {self.o_dir_name}")
+        if self.resample_method == "bootstrap":
             np.random.seed(self.num_bootstrap) # initialize seed
             for i in range(self.num_bootstrap):
                 idx = str(i).zfill(len(str(self.num_bootstrap)))
@@ -192,11 +192,11 @@ class resample_XstackRunner:
                 sampled_z_lst = self.z_lst[sampled_idx]
                 sampled_nh_lst = self.nh_lst[sampled_idx]
                 sampled_srcid_lst = self.srcid_lst[sampled_idx]
-                o_pi_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_pi_basename)[0],idx,os.path.splitext(self.o_pi_basename)[1])
-                o_bkgpi_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_bkgpi_basename)[0],idx,os.path.splitext(self.o_bkgpi_basename)[1])
-                o_arf_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_arf_basename)[0],idx,os.path.splitext(self.o_arf_basename)[1])
-                o_rmf_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_rmf_basename)[0],idx,os.path.splitext(self.o_rmf_basename)[1])
-                o_fene_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_fene_basename)[0],idx,os.path.splitext(self.o_fene_basename)[1])
+                o_pi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_pi_basename)[0]}_{idx}{os.path.splitext(self.o_pi_basename)[1]}"
+                o_bkgpi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_bkgpi_basename)[0]}_{idx}{os.path.splitext(self.o_bkgpi_basename)[1]}"
+                o_arf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_arf_basename)[0]}_{idx}{os.path.splitext(self.o_arf_basename)[1]}"
+                o_rmf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_rmf_basename)[0]}_{idx}{os.path.splitext(self.o_rmf_basename)[1]}"
+                o_fene_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_fene_basename)[0]}_{idx}{os.path.splitext(self.o_fene_basename)[1]}"
 
                 XstackRunner_i = XstackRunner(
                     pifile_lst=sampled_pifile_lst,
@@ -206,7 +206,7 @@ class resample_XstackRunner:
                     bkgpifile_lst=sampled_bkgpifile_lst,
                     nh_lst=sampled_nh_lst,
                     srcid_lst=sampled_srcid_lst,
-                    arfscal_method=self.arfscal_method,
+                    rspwt_method=self.rspwt_method,
                     int_rng=self.int_rng,
                     rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,
@@ -220,16 +220,16 @@ class resample_XstackRunner:
                     o_bkgpi_name=o_bkgpi_name_i,
                     o_arf_name=o_arf_name_i,
                     o_rmf_name=o_rmf_name_i,
-                    fene_name=o_fene_name_i,
+                    o_fene_name=o_fene_name_i,
                 )
                 self.XstackRunner_lst.append(XstackRunner_i)
 
             # Parallel(n_jobs=self.num_bootstrap,backend=NestedBackend())(delayed(self.process_entry)(i) for i in tqdm(range(self.num_bootstrap)))
             for i in range(self.num_bootstrap):
                 self.XstackRunner_lst[i].run()
-                print('****************** Current iteration: #%d/%d ********************'%(i+1,self.num_bootstrap))
+                print(f"****************** Current iteration: #{i+1}/{self.num_bootstrap} ********************")
 
-        elif self.resample_method == 'KFold':
+        elif self.resample_method == "KFold":
             sorted_idx = np.argsort(self.Ksort_lst)
             sortedpifile_lst = self.pifile_lst[sorted_idx]
             sortedarffile_lst = self.arffile_lst[sorted_idx]
@@ -250,11 +250,11 @@ class resample_XstackRunner:
                 sampled_sortedbkgpifile_lst = sortedbkgpifile_lst[mask]
                 sampled_sortednh_lst = sortednh_lst[mask]
                 sampled_sortedsrcid_lst = sortedsrcid_lst[mask]
-                o_pi_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_pi_basename)[0],idx,os.path.splitext(self.o_pi_basename)[1])
-                o_bkgpi_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_bkgpi_basename)[0],idx,os.path.splitext(self.o_bkgpi_basename)[1])
-                o_arf_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_arf_basename)[0],idx,os.path.splitext(self.o_arf_basename)[1])
-                o_rmf_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_rmf_basename)[0],idx,os.path.splitext(self.o_rmf_basename)[1])
-                o_fene_name_i = '%s/%s_%s%s'%(self.o_dir_name,os.path.splitext(self.o_fene_basename)[0],idx,os.path.splitext(self.o_fene_basename)[1])
+                o_pi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_pi_basename)[0]}_{idx}{os.path.splitext(self.o_pi_basename)[1]}"
+                o_bkgpi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_bkgpi_basename)[0]}_{idx}{os.path.splitext(self.o_bkgpi_basename)[1]}"
+                o_arf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_arf_basename)[0]}_{idx}{os.path.splitext(self.o_arf_basename)[1]}"
+                o_rmf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_rmf_basename)[0]}_{idx}{os.path.splitext(self.o_rmf_basename)[1]}"
+                o_fene_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_fene_basename)[0]}_{idx}{os.path.splitext(self.o_fene_basename)[1]}"
 
                 XstackRunner_i = XstackRunner(
                     pifile_lst=sampled_sortedpifile_lst,
@@ -264,7 +264,7 @@ class resample_XstackRunner:
                     bkgpifile_lst=sampled_sortedbkgpifile_lst,
                     nh_lst=sampled_sortednh_lst,
                     srcid_lst=sampled_sortedsrcid_lst,
-                    arfscal_method=self.arfscal_method,
+                    rspwt_method=self.rspwt_method,
                     int_rng=self.int_rng,
                     rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,
@@ -278,16 +278,17 @@ class resample_XstackRunner:
                     o_bkgpi_name=o_bkgpi_name_i,
                     o_arf_name=o_arf_name_i,
                     o_rmf_name=o_rmf_name_i,
-                    fene_name=o_fene_name_i,
+                    o_fene_name=o_fene_name_i,
                 )
                 self.XstackRunner_lst.append(XstackRunner_i)
 
             for i in range(self.K):
                 self.XstackRunner_lst[i].run()
-                print('****************** Current iteration: #%d/%d ********************'%(i+1,self.K))
+                print(f"****************** Current iteration: #{i+1}/{self.K} ********************")
 
-            pass
-
+        else:
+            raise Exception("`resample_method` invalid (allowed: `bootstrap`, `KFold`) !")
+        
         return
     
     ######## DEPRECATED USAGE #########

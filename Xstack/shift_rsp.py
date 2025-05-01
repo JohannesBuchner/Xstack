@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 import numpy as np
 from astropy.io import fits
 from numba import jit
 from astropy.cosmology import Planck18
 import astropy.units as u
 from tqdm import tqdm
-
 
 
 # shift_rsp
@@ -15,27 +15,39 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
     1) Shift in the direction of output channel energy. That is to say, shift and broaden the probability profile for 
        each input energy (i.e. when the detector receive a photon with some input energy, the probability that a signal 
        at some output channel energy will be observed; so this is a function of output channel energy) by (1+z); 
-    2) Shift in the direction of input energy by (1+z).
+    2) Shift in the direction of input energy by (1+z), with height (effective area) unchanged.
     
     Parameters
     ----------
-    mat : astropy.io.fits.FITS_rec
-        The `MATRIX` HDU data from a standard OGIP RMF file.
-    ebo : astropy.io.fits.FITS_rec
-        The `EBOUNDS` HDU data from a standard OGIP RMF file.
+    arffile : str
+        The ARF file name.
+    rmffile : str
+        The RMF file name.
     z : float
         Redshift.
+    nh_file : str, optional
+        Galactic absorption profile (absorption factor vs. energy). If specified, galactic absorption 
+        correction will be applied on the ARF before shifting.
+        - Should be in txt format. 
+        - Should also contain the following columns in the first extension: `nhene_ce`, `nhene_wd`, `factor`.
+        - `factor` should indicate the absorption factor when nh=1e20.
+        - An easy way to obtain the `nh_file`: iplot `tbabs*powerlaw` with `Nh`=1e20 and `PhoIndex`=0.0, `Norm`=1 in Xspec.
+    nh : float, optional
+        The galactic absorption nh of the source (e.g. 3e20). Defaults to 1e20.
+    ene_trc : float, optional
+        Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically 0.2 keV. Defaults to None.
     rmfsft_method : str, optional
         The RMF shifting method. Two methods are available:
-        - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
         - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, 
           and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is 
           more time-consuming than PARameterized method (~10^2 times slower).
-          
+        - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
+        Defaults to `NONPAR`.
+
     Returns
     -------
-    prob_sft : numpy.ndarray
-        The shifted probability matrix.
+    rspmat_sft : numpy.ndarray
+        The shifted 2D RSP matrix.
     """
     # read ARF and RMF file
     with fits.open(arffile) as hdu:
@@ -55,8 +67,8 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
     iene_hi = mat["ENERG_HI"].astype(np.float32)
 
     # sanity check: if the energy bins match
-    assert np.all(arfene_lo==iene_lo), ""
-    assert np.all(arfene_hi==iene_hi), ""
+    assert np.all(arfene_lo==iene_lo), "arfene_lo (from arffile) and iene_lo (from rmffile) do not match!"
+    assert np.all(arfene_hi==iene_hi), "arfene_hi (from arffile) and iene_hi (from rmffile) do not match!"
 
     # GalNH correction on ARF (optional)
     if nh_file is not None:
@@ -74,7 +86,7 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
         nhene_lo = nhene_ce - nhene_wd
         nhene_hi = nhene_ce + nhene_wd
         factor = np.array(factor)
-        specresp = corr_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh)
+        specresp = correct_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh)
 
     # truncate below ene_trc (optional)
     if ene_trc is not None:
@@ -84,7 +96,6 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
     # combine ARF and RMF into a single RSP matrix
     prob = get_prob(mat,ebo)                # the RMF 2D matrix, shape=(iene_ce, ene_ce)
     rspmat = prob*specresp[:,np.newaxis]    # the RSP matrix (RMF*ARF)
-    # rspmat,arfene_lo,arfene_hi,ene_lo,ene_hi = combine_arf_rmf(specresp,rmffile)
 
     # finally, shift the RSP matrix
     if rmfsft_method == "NONPAR":
@@ -93,9 +104,9 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
         # TODO: add the parameterized method!
         raise Exception("NOT READY YET!")
     else:
-        raise Exception('Available rmfsft_method (RMF shifting method): `PAR` or `NONPAR` (see help(shift_rmf) for illustration)!')   
+        raise Exception("Available rmfsft_method (RMF shifting method): `PAR` or `NONPAR` (see help(shift_rmf) for illustration)!")   
 
-    del mat,ebo,prob
+    del mat,ebo,prob    # to clear memory
 
     return rspmat_sft
 
@@ -108,8 +119,8 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
 
     Parameters
     ----------
-    specresp_lst : list or numpy.ndarray
-        The ARF specresp (cm^2 vs. arf energy) list.
+    rspmat_lst : list or numpy.ndarray
+        The RSP (=ARF*RMF) 2D matrix (cm^2*probability) list.
     pi_lst : list or numpy.ndarray
         The PI list.
     z_lst : list or numpy.ndarray
@@ -130,24 +141,28 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         Exposure list. Defaults to None
     int_rng : tuple of (float,float)
         The energy (keV) range for computing flux. Defaults to (1.0,2.3).
-    arfscal_method : str
-        Method for calculating ARFSCAL. Available methods are:
+    rspwt_method : str
+        Method for calculating response weight. Available methods are:
+        - `SHP`: assuming all sources have same spectral shape, recommended
         - `FLX`: assuming all sources have same flux (erg/s/cm^2)
         - `LMN`: assuming all sources have same luminosity (erg/s)
-        - `SHP`: assuming all sources have same spectral shape
-    fits_name : str, optional
-        If specified, create a fits file with name `fits_name`. Defaults to None.
+    outarf_name : str, optional
+        If specified, extract the ARF from the stacked RSP and create a fits file named `outarf_name`. Defaults to None.
     sample_arf : str, optional
-        A sample ARF to read `arfene_lo` and `arfene_hi`. Defaults to sample.arf.
+        A sample ARF to read `arfene_lo` and `arfene_hi`. Defaults to "sample.arf".
     srcid_lst : list or numpy.ndarray
         Source ID list. Defaults to None.
-    prob_lst : list or numpy.ndarray
-        A list of RMF 2D matrices. If given, the ARF used for calculating flux will be RMF-weighted. Defaults to None.
-
+    outrmf_name : str, optional
+        If specified, extract the RMF from the stacked RSP and create a fits file named `outrmf_name`. Defaults to None.
+     sample_rmf : str, optional
+        A sample RMF to read `ene_lo` and `ene_hi`. Defaults to "sample.rmf".
+    
     Returns
     -------
     sum_specresp : numpy.ndarray
-        The weighted sum of ARF profiles.
+        The effective ARF profile extracted from the stacked RSP.
+    sum_prob : numpy.ndarray
+        The effective RMF 2D probability matrix extracted from the stacked RSP.
     """
     rspmat_lst = np.array(rspmat_lst)
     pi_lst = np.array(pi_lst)
@@ -195,7 +210,6 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
 
     # extract ARF
     sum_specresp = np.sum(sum_rspmat,axis=1)
-
     if outarf_name is not None:
         with fits.open(sample_arf) as hdu:
             arf = hdu["SPECRESP"].data
@@ -204,9 +218,11 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         
         hdulist = fits.HDUList()
     
+        # extension 0: primary hdu
         primary_hdu = fits.PrimaryHDU()
         hdulist.append(primary_hdu)
         
+        # extension 1: SPECRESP
         cols = [fits.Column(name="ENERG_LO", format="D", array=arfene_lo),
                 fits.Column(name="ENERG_HI", format="D", array=arfene_hi),
                 fits.Column(name="SPECRESP", format="D", array=sum_specresp)]
@@ -221,29 +237,30 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         hdu_specresp.header["HDUCLAS2"] = "SPECRESP"
         hdu_specresp.header["HDUVERS"] = "1.1.0"
         hdu_specresp.header["EXPOSURE"] = expo_lst.sum()
-        hdu_specresp.header["ARFMETH"] = rspwt_method
+        hdu_specresp.header["WTMETH"] = rspwt_method
         hdu_specresp.header["CREATOR"] = "XSTACK"
         hdulist.append(hdu_specresp)
 
+        # extension 2: WEIGHT
         cols = [fits.Column(name="SRCID", format="J", array=srcid_lst),
                 fits.Column(name="RSPWT", format="D", array=rspwt_lst),
                 fits.Column(name="PHOCOUN", format="J", array=np.sum(pi_lst,axis=1)),
                 fits.Column(name="BPHOCOUN", format="D", array=np.sum(bkgpi_lst*bkgscal_lst[:,np.newaxis],axis=1))]
-        hdu_arfscal = fits.BinTableHDU.from_columns(cols, name="ARFSCAL")
-        hdu_arfscal.header['RSPNORM'] = rspnorm
-        hdulist.append(hdu_arfscal)
+        hdu_weight = fits.BinTableHDU.from_columns(cols, name="WEIGHT")
+        hdu_weight.header["RSPNOR"] = rspnorm
+        hdulist.append(hdu_weight)
 
+        # extension 3: FLAG
         cols = [fits.Column(name="CHANNEL", format="J", array=np.arange(1,len(flg)+1)),
                 fits.Column(name="FLAG", format="J", array=flg.astype("int"))]
-        hdu_flag = fits.BinTableHDU.from_columns(cols, name='FLAG')
-        hdu_flag.header["FLAG"] = "whether the bin is used for ARFSCAL estimation"
+        hdu_flag = fits.BinTableHDU.from_columns(cols, name="FLAG")
+        hdu_flag.header["FLAG"] = "whether the bin is used for RSPWT estimation"
         hdulist.append(hdu_flag)
         
         hdulist.writeto(f"{outarf_name}", overwrite=True)
 
     # extract RMF
     sum_prob = sum_rspmat / sum_specresp[:,np.newaxis]
-
     if outrmf_name is not None:
         hdulist = fits.HDUList()
         
@@ -253,10 +270,10 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         
         # extension 1: MATRIX
         with fits.open(sample_rmf) as hdu:
-            mat = hdu['MATRIX'].data
-            ebo = hdu['EBOUNDS'].data
-        iene_lo = mat['ENERG_LO']
-        iene_hi = mat['ENERG_HI']
+            mat = hdu["MATRIX"].data
+            ebo = hdu["EBOUNDS"].data
+        iene_lo = mat["ENERG_LO"]
+        iene_hi = mat["ENERG_HI"]
         n_grp = []
         f_chan = []
         n_chan = []
@@ -271,52 +288,52 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
             mat.append(sum_prob_i[:last_nonzero_idx+1])
         n_grp = np.array(n_grp)
             
-        cols = [fits.Column(name='ENERG_LO', format='D', array=iene_lo),
-                fits.Column(name='ENERG_HI', format='D', array=iene_hi),
-                fits.Column(name='N_GRP', format='J', array=n_grp),
-                fits.Column(name='F_CHAN', format='PJ()', array=f_chan),
-                fits.Column(name='N_CHAN', format='PJ()', array=n_chan),
-                fits.Column(name='MATRIX', format='PD()', array=mat)]
-        hdu_matrix = fits.BinTableHDU.from_columns(cols, name='MATRIX')
+        cols = [fits.Column(name="ENERG_LO", format="D", array=iene_lo),
+                fits.Column(name="ENERG_HI", format="D", array=iene_hi),
+                fits.Column(name="N_GRP", format="J", array=n_grp),
+                fits.Column(name="F_CHAN", format="PJ()", array=f_chan),
+                fits.Column(name="N_CHAN", format="PJ()", array=n_chan),
+                fits.Column(name="MATRIX", format="PD()", array=mat)]
+        hdu_matrix = fits.BinTableHDU.from_columns(cols, name="MATRIX")
         # RMF header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, CAL/GEN/92-002: "The Calibration Requirements for Spectral Analysis")
-        hdu_matrix.header['TELESCOP'] = 'STACKED'
-        hdu_matrix.header['INSTRUME'] = 'STACKED'
-        hdu_matrix.header['CHANTYPE'] = 'PI'
-        hdu_matrix.header['DETCHANS'] = sum_prob.shape[1]
-        hdu_matrix.header['HDUCLASS'] = 'OGIP'
-        hdu_matrix.header['HDUCLAS1'] = 'RESPONSE'
-        hdu_matrix.header['HDUCLAS2'] = 'RSP_MATRIX'
-        hdu_matrix.header['HDUVERS'] = '1.3.0'
-        hdu_matrix.header['TLMIN4'] = 1 # the first channel in the response
-        hdu_matrix.header['EXPOSURE'] = expo_lst.sum()
-        hdu_matrix.header['ANCRFILE'] = outarf_name # TODO: save under the same dir?
-        hdu_matrix.header['CREATOR'] = 'XSTACK'
+        hdu_matrix.header["TELESCOP"] = "STACKED"
+        hdu_matrix.header["INSTRUME"] = "STACKED"
+        hdu_matrix.header["CHANTYPE"] = "PI"
+        hdu_matrix.header["DETCHANS"] = sum_prob.shape[1]
+        hdu_matrix.header["HDUCLASS"] = "OGIP"
+        hdu_matrix.header["HDUCLAS1"] = "RESPONSE"
+        hdu_matrix.header["HDUCLAS2"] = "RSP_MATRIX"
+        hdu_matrix.header["HDUVERS"] = "1.3.0"
+        hdu_matrix.header["TLMIN4"] = 1 # the first channel in the response
+        hdu_matrix.header["EXPOSURE"] = expo_lst.sum()
+        hdu_matrix.header["ANCRFILE"] = outarf_name # TODO: save under the same dir?
+        hdu_matrix.header["CREATOR"] = "XSTACK"
         hdulist.append(hdu_matrix)
         
         # extension 2: EBOUNDS
-        ene_lo = ebo['E_MIN']
-        ene_hi = ebo['E_MAX']
+        ene_lo = ebo["E_MIN"]
+        ene_hi = ebo["E_MAX"]
         chan = np.arange(1,len(ene_lo)+1)
-        cols = [fits.Column(name='CHANNEL', format='J', array=chan),
-                fits.Column(name='E_MIN', format='D', array=ene_lo),
-                fits.Column(name='E_MAX', format='D', array=ene_hi)]
-        hdu_ebounds = fits.BinTableHDU.from_columns(cols, name='EBOUNDS')
+        cols = [fits.Column(name="CHANNEL", format="J", array=chan),
+                fits.Column(name="E_MIN", format="D", array=ene_lo),
+                fits.Column(name="E_MAX", format="D", array=ene_hi)]
+        hdu_ebounds = fits.BinTableHDU.from_columns(cols, name="EBOUNDS")
         # RMF header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, CAL/GEN/92-002: "The Calibration Requirements for Spectral Analysis")
-        hdu_ebounds.header['TELESCOP'] = 'STACKED'
-        hdu_ebounds.header['INSTRUME'] = 'STACKED'
-        hdu_ebounds.header['CHANTYPE'] = 'PI'
-        hdu_ebounds.header['DETCHANS'] = sum_prob.shape[1]
-        hdu_ebounds.header['HDUCLASS'] = 'OGIP'
-        hdu_ebounds.header['HDUCLAS1'] = 'RESPONSE'
-        hdu_ebounds.header['HDUCLAS2'] = 'EBOUNDS'
-        hdu_ebounds.header['HDUVERS'] = '1.2.0'
+        hdu_ebounds.header["TELESCOP"] = "STACKED"
+        hdu_ebounds.header["INSTRUME"] = "STACKED"
+        hdu_ebounds.header["CHANTYPE"] = "PI"
+        hdu_ebounds.header["DETCHANS"] = sum_prob.shape[1]
+        hdu_ebounds.header["HDUCLASS"] = "OGIP"
+        hdu_ebounds.header["HDUCLAS1"] = "RESPONSE"
+        hdu_ebounds.header["HDUCLAS2"] = "EBOUNDS"
+        hdu_ebounds.header["HDUVERS"] = "1.2.0"
         hdulist.append(hdu_ebounds)
         
-        # extension 3: RMFSCAL
-        cols = [fits.Column(name='SRCID', format='J', array=srcid_lst),
-                fits.Column(name='RSPWT', format='D', array=rspwt_lst)]
-        hdu_rmfscal = fits.BinTableHDU.from_columns(cols, name='RMFSCAL')
-        hdulist.append(hdu_rmfscal)
+        # extension 3: WEIGHT
+        cols = [fits.Column(name="SRCID", format="J", array=srcid_lst),
+                fits.Column(name="RSPWT", format="D", array=rspwt_lst)]
+        hdu_weight = fits.BinTableHDU.from_columns(cols, name="WEIGHT")
+        hdulist.append(hdu_weight)
         
         hdulist.writeto(f"{outrmf_name}", overwrite=True)
 
@@ -328,13 +345,13 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
 #==============================================
 @jit
 def shift_matrix_nonpar(prob,iene_lo,iene_hi,ene_lo,ene_hi,z):
-    '''
+    """
     Numba code for Non-parametric RSP/RMF shifting.
 
     Parameters
     ----------
     prob : numpy.ndarray
-        The RSP/RMF 2D probability matrix, or the RSP 2D matrix.
+        The RMF 2D probability matrix, or the RSP 2D matrix.
     iene_lo : numpy.ndarray
         Lower edge of input model energy (ARF energy) bin.
     iene_hi : numpy.ndarray
@@ -349,8 +366,8 @@ def shift_matrix_nonpar(prob,iene_lo,iene_hi,ene_lo,ene_hi,z):
     Returns
     -------
     prob_sft : numpy.ndarray
-        The rest-frame shifted RSP/RMF 2D probability matrix. 
-    '''
+        The rest-frame shifted RSP/RMF 2D matrix. 
+    """
     iene_ce = (iene_lo + iene_hi) / 2
     iene_wd = iene_hi - iene_lo
     iene_id = np.arange(len(iene_ce))
@@ -399,11 +416,11 @@ def shift_matrix_nonpar(prob,iene_lo,iene_hi,ene_lo,ene_hi,z):
             
             prob_1d[ene_id_mask] += prob[i][j] * prob_mask
         
-        if np.sum(prob_1d) > 0:
+        if np.sum(prob_1d) > 0: # to deal with the high energy tail; we want to make sure that the sum along horizontal axis equals to arf specresp in the energy
             prob_1d *= np.sum(prob[i])/np.sum(prob_1d)
         prob_sft_horizontal[i] = prob_1d
             
-    # step 2: vertical shift, input model energy *(1+z)
+    # step 2: vertical shift, input model energy *(1+z), height unchanged
     prob_sft_vertical = np.zeros(prob.shape)
 
     iene_sft_lo = iene_lo * (1+z)
@@ -447,12 +464,16 @@ def project_rspmat(rspmat,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL")
         Lower edge of input model energy (ARF energy) bin.
     arfene_hi : numpy.ndarray
         Upper edge of input model energy (ARF energy) bin.
-    
+    proj_axis : str
+        The projection axis. Available options are:
+        - `CHANNEL`: project on output channel energy axis
+        - `MODEL`: project on input model energy axis
+        Defaults to `CHANNEL`.
 
     Returns
     -------
-    specresp_ali : numpy.ndarray
-        The aligned ARF specresp.
+    rsp1d : numpy.ndarray
+        The 1D effective area profile.
     """
     # sanity check
     assert ene_lo.shape == ene_hi.shape, ""
@@ -508,10 +529,10 @@ def compute_rspwt(specresp_lst,pi_lst,z_lst,bkgpi_lst,bkgscal_lst,expo_lst,ene_w
 
     Returns
     -------
-    arfscal_lst : numpy.ndarray
-        The ARF scaling ratio for each source.
-    arfnorm : float
-        The ARF weighting factor normalization.
+    rspwt_lst : numpy.ndarray
+        The RSP weight for each source.
+    rspnorm : float
+        The RSP weight normalization.
     """
 
     if method == "SHP":   # SHAPE; This is the minimum assumption for spectral stacking, that all spectra look similar in shape
@@ -537,15 +558,15 @@ def compute_rspwt(specresp_lst,pi_lst,z_lst,bkgpi_lst,bkgscal_lst,expo_lst,ene_w
         rspnorm = 1     # arbitrary number
 
     else:
-        raise Exception('Available method for ARF scaling ratio calculation: `FLX`, `LMN`, or `SHP` !')
+        raise Exception("Available method for ARF scaling ratio calculation: `FLX`, `LMN`, or `SHP` !")
     
     print(rspwt_lst)
     
     return rspwt_lst,rspnorm
 
 
-def corr_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh):
-    '''
+def correct_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh):
+    """
     Multiply the ARF specresp with the galactic absorption profile. 
     The template galactic absorption profile should be at nh=1e20.
     The source nh value is specified by `nh`.
@@ -571,7 +592,7 @@ def corr_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh):
     -------
     specresp_cor : numpy.ndarray
         The corrected ARF specresp.
-    '''
+    """
     nhene_ce = (nhene_lo + nhene_hi) / 2
     nhene_wd = nhene_hi - nhene_lo
     nh_scal = nh / 1e20
@@ -600,7 +621,7 @@ def corr_arf(specresp,arfene_lo,arfene_hi,factor,nhene_lo,nhene_hi,nh):
 
 
 def get_prob(mat,ebo):
-    '''
+    """
     Parse the RMF file (input the `MATRIX` and `EBOUNDS` extension) into a 2D probability matrix. 
 
     Parameters
@@ -624,22 +645,22 @@ def get_prob(mat,ebo):
         The RMF 2D probability matrix. Index [i,j], where:
         - i represents arfene (iene or inpu model energy)
         - j represents ene (output channel energy)
-    '''
-    ene_lo = ebo['E_MIN'].astype(np.float32)
-    ene_hi = ebo['E_MAX'].astype(np.float32)
+    """
+    ene_lo = ebo["E_MIN"].astype(np.float32)
+    ene_hi = ebo["E_MAX"].astype(np.float32)
     ene_ce = (ene_lo + ene_hi) / 2
     ene_wd = ene_hi - ene_lo
-    iene_lo = mat['ENERG_LO'].astype(np.float32)
-    iene_hi = mat['ENERG_HI'].astype(np.float32)
+    iene_lo = mat["ENERG_LO"].astype(np.float32)
+    iene_hi = mat["ENERG_HI"].astype(np.float32)
     iene_ce = (iene_lo + iene_hi) / 2
     iene_wd = iene_hi - iene_lo
     grid = np.meshgrid(ene_ce,iene_ce) # ( (len(iene_ce),len(ene_ce)), (len(iene_ce),len(ene_ce)) )
     prob = np.zeros(grid[0].shape) # probability per channel
     
-    n_grp = mat['N_GRP']
-    f_chan = mat['F_CHAN']
-    n_chan = mat['N_CHAN']
-    matrix = np.array(mat['MATRIX'])
+    n_grp = mat["N_GRP"]
+    f_chan = mat["F_CHAN"]
+    n_chan = mat["N_CHAN"]
+    matrix = np.array(mat["MATRIX"])
     
     f_chan_0 = int(np.min([np.min(f_chan[_]) for _ in range(len(f_chan))])) # the zero point of channel index
     for i in range(len(iene_ce)):
