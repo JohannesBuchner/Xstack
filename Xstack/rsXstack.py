@@ -41,7 +41,7 @@ class resample_XstackRunner:
     data.run()  # this will produce a batch of bootstrap stacked PIs, bkgPIs, ARFs, RMFs under `bootstrap` directory 
     """
     def __init__(
-            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,resample_method="bootstrap",num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,o_dir_name=None,o_pi_basename=None,o_bkgpi_basename=None,o_arf_basename=None,o_rmf_basename=None,o_fene_basename=None
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,resample_method="bootstrap",num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,o_dir_name=None,o_pi_basename=None,o_bkgpi_basename=None,o_arf_basename=None,o_rmf_basename=None,o_fene_basename=None
         ):
         """
         Parameters
@@ -65,6 +65,8 @@ class resample_XstackRunner:
             - `SHP`: assuming all sources have same spectral shape, recommended
             - `FLX`: assuming all sources have same flux (erg/s/cm^2)
             - `LMN`: assuming all sources have same luminosity (erg/s)
+        rspproj_gamma : float, optional
+            The prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).
         int_rng : tuple of (float,float), optional
             The energy (keV) range for computing flux. Defaults to (1.0,2.3).
         rmfsft_method : str, optional
@@ -88,7 +90,7 @@ class resample_XstackRunner:
         rm_ene_dsp : bool, optional
             Whether or not to remove the energy dispersion map at each run. Generating dispersion map could take some time. Defaults to False.
         usecpu : int, optional
-            Number of CPUs used in shifting RMF.
+            Number of CPUs used in shifting RSP.
         resample_method : str, optional
             Resampling method. Defaults to `bootstrap`. Available methods are:
             - `bootstrap`: Resample a certain portion (default 1.0; modified by `bootstrap_portion`) of original sample with replacement, for `num_bootstrap` times.
@@ -129,6 +131,7 @@ class resample_XstackRunner:
         else:
             self.srcid_lst = np.arange(len(pifile_lst))
         self.rspwt_method = rspwt_method
+        self.rspproj_gamma = rspproj_gamma
         self.int_rng = int_rng
         self.rmfsft_method = rmfsft_method
         if sample_rmf is None:
@@ -207,6 +210,7 @@ class resample_XstackRunner:
                     nh_lst=sampled_nh_lst,
                     srcid_lst=sampled_srcid_lst,
                     rspwt_method=self.rspwt_method,
+                    rspproj_gamma=self.rspproj_gamma,
                     int_rng=self.int_rng,
                     rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,
@@ -265,6 +269,7 @@ class resample_XstackRunner:
                     nh_lst=sampled_sortednh_lst,
                     srcid_lst=sampled_sortedsrcid_lst,
                     rspwt_method=self.rspwt_method,
+                    rspproj_gamma=self.rspproj_gamma,
                     int_rng=self.int_rng,
                     rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,

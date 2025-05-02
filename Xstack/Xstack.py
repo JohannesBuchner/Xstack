@@ -35,7 +35,7 @@ class XstackRunner:
     data.run()  # this will produce the stacked PI, bkgPI, ARF, RMF in one go
     """
     def __init__(
-            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,o_pi_name=None,o_bkgpi_name=None,o_arf_name=None,o_rmf_name=None,o_fene_name=None
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,o_pi_name=None,o_bkgpi_name=None,o_arf_name=None,o_rmf_name=None,o_fene_name=None
         ):
         """
         Parameters
@@ -59,11 +59,13 @@ class XstackRunner:
             - `SHP`: assuming all sources have same spectral shape, recommended
             - `FLX`: assuming all sources have same flux (erg/s/cm^2)
             - `LMN`: assuming all sources have same luminosity (erg/s)
+        rspproj_gamma : float, optional
+            The prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).
         int_rng : tuple of (float,float), optional
             The energy (keV) range for computing flux. Defaults to (1.0,2.3).
         rmfsft_method : str, optional
             The RMF shifting method. Defaults to `NONPAR`. Two methods are available:
-            - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is more time-consuming than PARameterized method (~10^2 times slower).
+            - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is more time-consuming than parameterized method (~10^2 times slower).
             - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
         sample_rmf : str, optional
             Name of sample RMF. Defaults to None.
@@ -82,7 +84,7 @@ class XstackRunner:
         rm_ene_dsp : bool, optional
             Whether or not to remove the energy dispersion map at each run. Generating dispersion map could take some time. Defaults to False.
         usecpu : int, optional
-            Number of CPUs used in shifting RMF.
+            Number of CPUs used in shifting RSP.
         o_pi_name : str, optional
             Name of output PI spectrum file. Defaults to None (do not produce output files).
         o_bkgpi_name : str, optional
@@ -108,6 +110,7 @@ class XstackRunner:
         else:
             self.srcid_lst = np.arange(len(pifile_lst))
         self.rspwt_method = rspwt_method
+        self.rspproj_gamma = rspproj_gamma
         self.int_rng = int_rng
         self.rmfsft_method = rmfsft_method
         if sample_rmf is None:
@@ -156,6 +159,7 @@ class XstackRunner:
         print(f"NH range: {np.min(self.nh_lst)} -- {np.max(self.nh_lst)}")
         print(f"NH file: {self.nh_file if self.nh_file is not None else 'None'}")
         print(f"RSP weighting method: {self.rspwt_method}")
+        print(f"RSP projection gamma: {self.rspproj_gamma}")
         print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV")
         print(f"ARF Truncation energy: {self.ene_trc} keV")
         print(f"RMF shifting method: {self.rmfsft_method}")
@@ -196,13 +200,13 @@ class XstackRunner:
         expo = np.sum(self.expo_lst)
         pi_stk,pierr_stk = add_pi(
             self.pi_sft_lst,fits_name=self.o_pi_name,expo=expo,bkg_file=self.o_bkgpi_name,rmf_file=self.o_rmf_name,arf_file=self.o_arf_name
-            )
+        )
         bkgpi_stk,bkgpierr_stk = add_bkgpi(
             self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,Ngrp=self.Nbkggrp,fits_name=self.o_bkgpi_name,expo=expo
-            )
+        )
         arf_stk, rmf_stk = add_rsp(
-            self.rspmat_sft_lst,self.pi_sft_lst,self.z_lst,bkgpi_lst=self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,ene_lo=ene_lo,ene_hi=ene_hi,arfene_lo=iene_lo,arfene_hi=iene_hi,expo_lst=self.expo_lst,int_rng=self.int_rng,rspwt_method=self.rspwt_method,outarf_name=self.o_arf_name,sample_arf=self.sample_arf,srcid_lst=self.srcid_lst,outrmf_name=self.o_rmf_name,sample_rmf=self.sample_rmf
-            )
+            self.rspmat_sft_lst,self.pi_sft_lst,self.z_lst,bkgpi_lst=self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,ene_lo=ene_lo,ene_hi=ene_hi,arfene_lo=iene_lo,arfene_hi=iene_hi,expo_lst=self.expo_lst,int_rng=self.int_rng,rspwt_method=self.rspwt_method,rspproj_gamma=self.rspproj_gamma,outarf_name=self.o_arf_name,sample_arf=self.sample_arf,srcid_lst=self.srcid_lst,outrmf_name=self.o_rmf_name,sample_rmf=self.sample_rmf
+        )
         
         if self.o_fene_name is not None:
             fene_fits(self.srcid_lst,self.arffene_lst,self.fene_lst,self.o_fene_name)
@@ -245,14 +249,14 @@ class XstackRunner:
         ene_hi = ebo["E_MAX"]
         ene_ce = (ene_lo + ene_hi) / 2
         ene_wd = ene_hi - ene_lo
-        arf_sft = project_rspmat(rspmat_sft,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL")
+        arf_sft = project_rspmat(rspmat_sft,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL",gamma=self.rspproj_gamma)
 
         arf_nonzero_mask = (arf_sft!=0)
         arffene = arfene_ce[arf_nonzero_mask][0]
         pi_nonzero_mask = (pi_sft!=0)
         fene = ene_ce[pi_nonzero_mask][0]
         
-        del hdu["MATRIX"].data,hdu["EBOUNDS"].data  # to clear memory
+        del hdu["MATRIX"].data, hdu["EBOUNDS"].data  # to clear memory
 
         # EXPO & BKGSCAL
         bkgscal = get_bkgscal(pifile,bkgpifile)

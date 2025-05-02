@@ -113,7 +113,7 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
 
 # add_rsp
 def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,ene_hi=None,arfene_lo=None,arfene_hi=None,
-            expo_lst=None,int_rng=(1.0,2.3),rspwt_method="SHP",outarf_name=None,sample_arf="sample.arf",srcid_lst=None,outrmf_name=None,sample_rmf="sample.rmf"):
+            expo_lst=None,int_rng=(1.0,2.3),rspwt_method="SHP",rspproj_gamma=2.0,outarf_name=None,sample_arf="sample.arf",srcid_lst=None,outrmf_name=None,sample_rmf="sample.rmf"):
     """
     Weighted sum of ARF specresp.
 
@@ -146,6 +146,8 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         - `SHP`: assuming all sources have same spectral shape, recommended
         - `FLX`: assuming all sources have same flux (erg/s/cm^2)
         - `LMN`: assuming all sources have same luminosity (erg/s)
+    rspproj_gamma : float, optional
+        The prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 0.0 (a flat spectrum).
     outarf_name : str, optional
         If specified, extract the ARF from the stacked RSP and create a fits file named `outarf_name`. Defaults to None.
     sample_arf : str, optional
@@ -200,11 +202,13 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
 
     rsp1d_lst = [[] for _ in range(len(rspmat_lst))]    # 1d specresp profile = 2d rsp matrix projected on output channel energy axis
     for i in tqdm(range(len(rsp1d_lst))):
-        rsp1d_lst[i] = project_rspmat(rspmat_lst[i],ene_lo,ene_hi,arfene_lo,arfene_hi)
+        rsp1d_lst[i] = project_rspmat(rspmat_lst[i],ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL",gamma=rspproj_gamma)
     
+    # calculate the weight for each RSP matrix
     rsp1d_lst = np.array(rsp1d_lst)
     rspwt_lst,rspnorm = compute_rspwt(rsp1d_lst,pi_lst,z_lst,bkgpi_lst,bkgscal_lst,expo_lst,ene_wd,flg,rspwt_method)
 
+    # stack the RSP matrix
     rspmat_wt_lst = rspmat_lst * rspwt_lst[:,np.newaxis,np.newaxis]
     sum_rspmat = np.sum(rspmat_wt_lst,axis=0)
 
@@ -448,7 +452,7 @@ def shift_matrix_nonpar(prob,iene_lo,iene_hi,ene_lo,ene_hi,z):
     return prob_sft_vertical
 
 
-def project_rspmat(rspmat,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL"):
+def project_rspmat(rspmat,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL",gamma=2.):
     """
     Project the 2D RSP matrix onto CHANNEL/MODEL energy axis, to get the effective specresp (cm^2 vs. energy)
     
@@ -466,9 +470,11 @@ def project_rspmat(rspmat,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL")
         Upper edge of input model energy (ARF energy) bin.
     proj_axis : str
         The projection axis. Available options are:
-        - `CHANNEL`: project on output channel energy axis
+        - `CHANNEL`: project on output channel energy axis. Note that to do this projection, we would nevertheless need to assume a spectral slope, or photo index (specified in `gamma`). This is to match the convention of unfolded spectrum (in e.g., XSPEC), where the effective area anchored on channel energy axis is in fact (folded model)/(model).
         - `MODEL`: project on input model energy axis
         Defaults to `CHANNEL`.
+    gamma : float
+        The spectral slope. Defaults to 2.0. This is only used when `proj_axis` is `CHANNEL`. For AGN sources, a powerlaw with photon index of 2.0 is a good approximation.
 
     Returns
     -------
@@ -487,8 +493,16 @@ def project_rspmat(rspmat,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL")
     ene_wd = ene_hi - ene_lo
 
     if proj_axis == "CHANNEL":
-        rspmat_arfenewd = rspmat*arfene_wd[:,np.newaxis]
-        rsp1d = np.sum(rspmat_arfenewd,axis=0) / ene_wd
+        # rspmat_arfenewd = rspmat*arfene_wd[:,np.newaxis]
+        # rsp1d = np.sum(rspmat_arfenewd,axis=0) / ene_wd
+
+        # to project the RSP matrix onto the output channel energy axis, we would nevertheless need to assume a spectral slope
+        # for AGN sources, a powerlaw with photon index of 2.0 is a good approximation
+        F_model = 1*arfene_ce**(-gamma) # the model spectrum (from our prior knowledge) as a function of model energy
+        F_channel = 1*ene_ce**(-gamma)  # the same model spectrum, but as a function of output channel energy
+        
+        F_folded = np.sum(rspmat*arfene_wd[:,np.newaxis]*F_model[:,np.newaxis],axis=0)/ene_wd   # the folded model
+        rsp1d = F_folded/F_channel  # effective area as a function of output channel energy = (folded model)/(model)
 
     elif proj_axis == "MODEL":
         rsp1d = np.sum(rspmat,axis=1)
