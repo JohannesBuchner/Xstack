@@ -1166,6 +1166,17 @@ def fold_model(modelfile,rmffile,arffile,out_name):
     ene_ce = (ene_lo + ene_hi) / 2
     ene_wd = ene_hi - ene_lo
     prob = get_prob(mat,ebo)
+    # in case you have any nan values
+    prob[np.isclose(prob,0,rtol=1e-06, atol=1e-06, equal_nan=False)] = 0 # remove elements with probability below the 1e-6 threshold
+    prob[np.isnan(prob)] = 0 # remove NaN
+    prob[prob<0] = 0 # remove negative elements
+    prob /= np.sum(prob,axis=1)[:,np.newaxis] # renormalize
+    prob[np.isnan(prob)] = 0 # remove NaN (produced when 0/0)
+    # for the first few input energies, the probability may be empty
+    # assign the first channel with 1 (an arbitrary choice)
+    for i in range(len(prob)):
+        if np.max(prob[i]) == 0.:
+            prob[i][0] = 1
 
     with fits.open(arffile) as hdu:
         arf = hdu['SPECRESP'].data
