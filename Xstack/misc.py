@@ -28,6 +28,7 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
     Available Methods
     -----------------
     * `EDGE`: Group by fixed energy bin edges.
+    * `MIN_NET` : Group by minimum net counts in each group.
     
     Parameters
     ----------
@@ -77,7 +78,7 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
             raise Exception('Either the RMF file is not specified as `rmf_file`, or the one in %s does not exist!'%src_name)
         
         with fits.open(rmf_file) as hdu:
-            ebo = hdu[2].data
+            ebo = hdu['EBOUNDS'].data
         ene_lo = ebo['E_MIN']
         ene_hi = ebo['E_MAX']
         ene_ce = (ene_lo + ene_hi) / 2
