@@ -359,6 +359,7 @@ def get_bkgscal(src_file,bkg_file=None):
     bkg_areascal = head['AREASCAL']
     bkg_backscal = head['BACKSCAL']
     bkgscal = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo
+    
     return bkgscal
 
 
