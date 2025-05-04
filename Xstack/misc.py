@@ -774,7 +774,8 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
         spine.set_linewidth(2.5)
 
     # inset colorbar
-    axins1 = inset_axes(ax,width='40%',height='4%',loc='lower right')
+    # axins1 = inset_axes(ax,width='40%',height='4%',loc='lower right')
+    axins1 = inset_axes(ax,width='100%',height='50%',bbox_to_anchor=(0.5,0.15,0.5,0.1),bbox_transform=ax.transAxes)
     if log_scale == True:
         ticks = np.logspace(np.log10(max(v_min_lbound,np.min(prob_new))),np.log10(np.max(prob_new)),3)
     else:
@@ -782,8 +783,8 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
     cbar = fig.colorbar(im,cax=axins1,orientation='horizontal',ticks=ticks)
     cbar.ax.set_xticklabels(['{:.0e}'.format(c) for c in ticks])
     axins1.xaxis.set_ticks_position('top')
-    axins1.tick_params(labelsize=6,pad=2,width=2,size=8)
-    cbar.set_label('Probability',size=10)
+    axins1.tick_params(labelsize=12,pad=2,width=2,size=14)
+    cbar.set_label('Probability',size=14)
 
     if fig_name is not None: 
         plt.savefig('%s'%fig_name,bbox_inches='tight',transparent=False,dpi=300)
@@ -1179,7 +1180,7 @@ def fold_model(modelfile,rmffile,arffile,out_name):
     ene_ce = (ene_lo + ene_hi) / 2
     ene_wd = ene_hi - ene_lo
     prob = get_prob(mat,ebo)
-    
+
     # in case you have any nan values
     prob[np.isclose(prob,0,rtol=1e-06, atol=1e-06, equal_nan=False)] = 0 # remove elements with probability below the 1e-6 threshold
     prob[np.isnan(prob)] = 0 # remove NaN
