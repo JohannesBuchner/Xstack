@@ -265,6 +265,16 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
 
     # extract RMF
     sum_prob = sum_rspmat / sum_specresp[:,np.newaxis]
+    sum_prob[np.isclose(sum_prob,0,rtol=1e-06, atol=1e-06, equal_nan=False)] = 0 # remove elements with probability below the 1e-6 threshold
+    sum_prob[np.isnan(sum_prob)] = 0 # remove NaN
+    sum_prob[sum_prob<0] = 0 # remove negative elements
+    sum_prob /= np.sum(sum_prob,axis=1)[:,np.newaxis] # renormalize
+    sum_prob[np.isnan(sum_prob)] = 0 # remove NaN (produced when 0/0)
+    # for the first few input energies, the probability may be empty
+    # assign the first channel with 1 (an arbitrary choice)
+    for i in range(len(sum_prob)):
+        if np.max(sum_prob[i]) == 0.:
+            sum_prob[i][0] = 1
     if outrmf_name is not None:
         hdulist = fits.HDUList()
         
