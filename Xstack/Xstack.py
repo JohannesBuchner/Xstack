@@ -249,7 +249,7 @@ class XstackRunner:
         ene_hi = ebo["E_MAX"]
         ene_ce = (ene_lo + ene_hi) / 2
         ene_wd = ene_hi - ene_lo
-        arf_sft = project_rspmat(rspmat_sft,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="CHANNEL",gamma=self.rspproj_gamma)
+        arf_sft = project_rspmat(rspmat_sft,ene_lo,ene_hi,arfene_lo,arfene_hi,proj_axis="MODEL")
 
         arf_nonzero_mask = (arf_sft!=0)
         arffene = arfene_ce[arf_nonzero_mask][0]
