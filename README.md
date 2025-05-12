@@ -153,18 +153,19 @@ The output will be:
       z_lst=z_lst,                                    # redshift list
       bkgpifile_lst=bkgpifile_lst,                    # bkg PI file list
       nh_lst=nh_lst,                                  # nh list
-      arfscal_method='SHP',                           # method to calculate ARF weighting factor for each source (recommended: SHP)
-      int_rng=(1.0,2.3),                              # if `arfscal_method`=`SHP`, choose the range to calculate flux
+      rspwt_method='SHP',                             # method to calculate response weighting factor for each source (recommended: SHP)
+      rspproj_gamma=2.0,                              # prior photon index for projecting RSP matrix onto the output energy channel.
+      int_rng=(1.0,2.3),                              # if `rspwt_method`=`SHP`, choose the range to calculate flux
       rmfsft_method='NONPAR',                         # method to shift RMF
       nh_file=Xstack.default_nh_file,                 # the Galactic absorption profile (absorption factor vs. energy)
       Nbkggrp=10,                                     # the number of background groups to calculate uncertainty of background
       ene_trc=0.2,                                    # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
       usecpu=50,                                      # number of cpus used for RMF shifting
-      o_pi_name='stack.pi',              				# name of output PI spectrum file
-      o_bkgpi_name='stackbkg.pi',       				# name of output background PI spectrum file
-      o_arf_name='stack.arf',            				# name of output ARF file
-      o_rmf_name='stack.rmf',            				# name of output RMF file
-      fene_name='stack.fene',            				# name of output fenergy file
+      o_pi_name='stack.pi',              				      # name of output PI spectrum file
+      o_bkgpi_name='stackbkg.pi',       				      # name of output background PI spectrum file
+      o_arf_name='stack.arf',            				      # name of output ARF file
+      o_rmf_name='stack.rmf',            				      # name of output RMF file
+      o_fene_name='stack.fene',            				    # name of output fenergy file
   ).run()
   ```
 
@@ -191,8 +192,9 @@ The output will be:
       z_lst=z_lst,                                    # redshift list
       bkgpifile_lst=bkgpifile_lst,                    # bkg PI file list
       nh_lst=nh_lst,                                  # nh list
-      arfscal_method='SHP',                           # method to calculate ARF weighting factor for each source (recommended: SHP)
-      int_rng=(1.0,2.3),                              # if `arfscal_method`=`SHP`, choose the range to calculate flux
+      rspwt_method='SHP',                             # method to calculate ARF weighting factor for each source (recommended: SHP)
+      rspproj_gamma=2.0,                              # prior photon index for projecting RSP matrix onto the output energy channel.
+      int_rng=(1.0,2.3),                              # if `rspwt_method`=`SHP`, choose the range to calculate flux
       rmfsft_method='NONPAR',                         # method to shift RMF
       nh_file=Xstack.default_nh_file,                 # the Galactic absorption profile (absorption factor vs. energy)
       Nbkggrp=10,                                     # the number of background groups to calculate uncertainty of background
@@ -206,10 +208,10 @@ The output will be:
       o_bkgpi_name='stackbkg.pi',       				# basename of output background PI spectrum file
       o_arf_name='stack.arf',            				# basename of output ARF file
       o_rmf_name='stack.rmf',            				# basename of output RMF file
-      fene_name='stack.fene',            				# basename of output fenergy file
+      o_fene_name='stack.fene',            				# basename of output fenergy file
   ).run()
   ```
 
   - see `help(resample_XstackRunner)` for the documentation for each input parameter.
 
-- View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through and more examples!
+- (Still working on it ...) View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through and more examples!
