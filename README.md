@@ -216,4 +216,4 @@ The output will be:
 
   - see `help(resample_XstackRunner)` for the documentation for each input parameter.
 
-- (Still working on it ...) View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through and more examples!
+- View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through and more examples!
