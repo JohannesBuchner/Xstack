@@ -58,7 +58,7 @@ The output will be:
 
 - and stacked `RMF`.
 
-### 1. Command line version
+### 1. Command line version (not tested yet)
 
 - A simple and quick example:
 
@@ -136,7 +136,7 @@ The output will be:
 - An example:
 
   ```python
-  from Xstack.Xstack import XstackRunner
+  from Xstack.Xstack import XstackRunner, default_nh_file
   
   ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic nHs ...
   #pifile_lst = [...]
@@ -158,7 +158,7 @@ The output will be:
       rspproj_gamma=2.0,                              # prior photon index for projecting RSP matrix onto the output energy channel.
       int_rng=(1.0,2.3),                              # if `rspwt_method`=`SHP`, choose the range to calculate flux
       rmfsft_method='NONPAR',                         # method to shift RMF
-      nh_file=Xstack.default_nh_file,                 # the Galactic absorption profile (absorption factor vs. energy)
+      nh_file=default_nh_file,                        # the Galactic absorption profile (absorption factor vs. energy)
       Nbkggrp=10,                                     # the number of background groups to calculate uncertainty of background
       ene_trc=0.2,                                    # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
       usecpu=50,                                      # number of cpus used for RMF shifting
@@ -171,11 +171,12 @@ The output will be:
   ```
 
   - see `help(XstackRunner)` for the documentation for each input parameter.
+  - please accept `NONPAR` as `rmfsft_method` for now, as `PAR` mode is still under development.
 
 - Or bootstrap:
 
   ```py
-  from Xstack.Xstack import resample_XstackRunner
+  from Xstack.Xstack import resample_XstackRunner, default_nh_file
   
   ## specify the input PIs, bkg PIs, RMFs, ARFs, redshifts, Galactic nHs ...
   #pifile_lst = [...]
@@ -197,7 +198,7 @@ The output will be:
       rspproj_gamma=2.0,                              # prior photon index for projecting RSP matrix onto the output energy channel.
       int_rng=(1.0,2.3),                              # if `rspwt_method`=`SHP`, choose the range to calculate flux
       rmfsft_method='NONPAR',                         # method to shift RMF
-      nh_file=Xstack.default_nh_file,                 # the Galactic absorption profile (absorption factor vs. energy)
+      nh_file=default_nh_file,                        # the Galactic absorption profile (absorption factor vs. energy)
       Nbkggrp=10,                                     # the number of background groups to calculate uncertainty of background
       ene_trc=0.2,                                    # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
       usecpu=50,                                      # number of cpus used for RMF shifting
