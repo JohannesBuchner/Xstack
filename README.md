@@ -12,7 +12,7 @@ To tackle these issues, we develop <span style="font-family: 'Courier New', Cour
 
 ## Key features of <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
 
-1) properly account for individual spectral contribution to the final stack, by assigning data-driven ARF weighting factors; 
+1) properly preserve X-ray spectral shape, by assigning data-driven response weighting factors; 
 2) preserve Poisson statistics; 
 3) support Galactic absorption correction, if an additional ***nH*** value (in units of 1 $\text{cm}^{-2}$) for each spectrum is given.
 
@@ -112,7 +112,8 @@ The output will be:
   |`filelist`|text file containing the file names|--|
   |`flux_energy_lo`|lower end of the energy range in keV for computing flux|--|
   |`flux_energy_hi`|upper end of the energy range in keV for computing flux|--|
-  |`arf_scale_method`|method to calculate ARF weighting factor for each source; `SHP`: assuming all sources have same spectral shape (the minimum assumption, recommended), `FLX`: assuming all sources have same spectral shape and energy flux (i.e., weigh by exposure time, could be used when source photon count is **very** low), `LMN`: assuming all sources have same spectral shape and luminosity (i.e., weigh by exposure/dist^2), |SHP|
+  |`rsp_weight_method`|method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2)|SHP|
+  |`rsp_project_gamma`|prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).|2.0|
   |`--outsrc`|source PI output file name, or basename in resample mode|stack.pi|
   |`--outbkg`|Background PI output file name, or basename in resample mode|stackbkg.pi|
   |`--outrmf`|RMF output file name, or basename in resample mode|stack.rmf|  
@@ -200,15 +201,15 @@ The output will be:
       Nbkggrp=10,                                     # the number of background groups to calculate uncertainty of background
       ene_trc=0.2,                                    # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
       usecpu=50,                                      # number of cpus used for RMF shifting
-      resample_method='bootstrap',              		# resample method: `bootstrap` or `KFold`
-      num_bootstrap=20,							    # number of bootstrap experiments in `bootstrap` method
-      bootstrap_portion=1.0,							# portion to resample in `bootstrap` method
-      o_dir_name='resample',							# name of output directory to store all bootstrap files
-      o_pi_name='stack.pi',              				# basename of output PI spectrum file
-      o_bkgpi_name='stackbkg.pi',       				# basename of output background PI spectrum file
-      o_arf_name='stack.arf',            				# basename of output ARF file
-      o_rmf_name='stack.rmf',            				# basename of output RMF file
-      o_fene_name='stack.fene',            				# basename of output fenergy file
+      resample_method='bootstrap',              		  # resample method: `bootstrap` or `KFold`
+      num_bootstrap=20,							                  # number of bootstrap experiments in `bootstrap` method
+      bootstrap_portion=1.0,							            # portion to resample in `bootstrap` method
+      o_dir_name='resample',							            # name of output directory to store all bootstrap files
+      o_pi_name='stack.pi',              				      # basename of output PI spectrum file
+      o_bkgpi_name='stackbkg.pi',       				      # basename of output background PI spectrum file
+      o_arf_name='stack.arf',            				      # basename of output ARF file
+      o_rmf_name='stack.rmf',            				      # basename of output RMF file
+      o_fene_name='stack.fene',            				    # basename of output fenergy file
   ).run()
   ```
 
