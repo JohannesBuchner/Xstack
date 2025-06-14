@@ -167,7 +167,7 @@ class resample_XstackRunner:
         # creating output directory
         self.outdir = os.path.dirname(prefix)
         if self.outdir is not "":
-            os.makedirs(self.outdir)
+            os.makedirs(self.outdir,exist_ok=True)
         self.prefix = prefix
 
         # if o_dir_name is None:

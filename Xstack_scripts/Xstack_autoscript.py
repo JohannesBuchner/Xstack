@@ -11,17 +11,23 @@ The key features of Xstack are: 1) properly account account for individual spect
 Examples
 --------
 Calling Xstack is simple. For this command line version, it is only a single-line task:
+
 ```
-runXstack your_filelist.txt 1.0 2.3 SHP
+runXstack your_filelist.txt --prefix ./results/stacked_
 ```
-And you will get `stack.pi`, `stackbkg.pi`, `stack.arf`, `stack.rmf`. Or more sophisticatedly:
+
+And you will get `./results/stacked_pi.fits`, `./results/stacked_bkgpi.fits`, `./results/stacked_arf.fits`, `./results/stacked_rmf.fits`, `./results/stacked_fene.fits`. Or more sophisticatedly:
+
 ```
-runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf 
+runXstack your_filelist.txt --prefix ./results/stacked_ --rsp_weight_method SHP --rsp_proj_gamma 2.0 --flux_energy_lo 1.0 --flux_energy_hi 2.3 --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf 
 ```
+
 If you want to do bootstrap, that is also easy:
+
 ```
-runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf --resample_method bootstrap --num_bootstrap 100 --resample_outdir YourOutputDir
+runXstack your_filelist.txt --prefix ./results/stacked_ --rsp_weight_method SHP --rsp_proj_gamma 2.0 --flux_energy_lo 1.0 --flux_energy_hi 2.3 --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf --resample_method bootstrap --num_bootstrap 100
 ```
+
 Please see below for the documentation of each Args:
 
 """
@@ -57,10 +63,10 @@ parser.add_argument("--prefix", type=str, default="./results/stacked_", help="pr
 # parser.add_argument("--outrmf", type=str, default="stack.rmf", help="RMF output file name, or basename in resample mode")
 # parser.add_argument("--outarf", type=str, default="stack.arf", help="ARF output file name, or basename in resample mode")
 # parser.add_argument("--outfene", type=str, default="fene.fits", help="name of output fits storing PI/ARF first energy, or basename in resample mode")
-parser.add_argument("--flux_energy_lo", type=float, default=1.0, help="lower end of the energy range in keV for computing flux; defaults to 1.0")
-parser.add_argument("--flux_energy_hi", type=float, default=2.3, help="upper end of the energy range in keV for computing flux; defaults to 2.3")
 parser.add_argument("--rsp_weight_method", type=str, default="SHP", help="method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2); defaults to 'SHP'")
 parser.add_argument("--rsp_project_gamma", type=float, default=2.0, help="prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response; defaults to 2.0 (typical for AGN).")
+parser.add_argument("--flux_energy_lo", type=float, default=1.0, help="lower end of the energy range in keV for computing flux; defaults to 1.0")
+parser.add_argument("--flux_energy_hi", type=float, default=2.3, help="upper end of the energy range in keV for computing flux; defaults to 2.3")
 parser.add_argument("--parametric_rmf", action="store_true", help="method to shift RMF: parametric (gaussian) or not (re-sample response matrices)")
 parser.add_argument("--rm_ene_dsp", action="store_true", help="remove energy dispersion map (the map is used for shifting RMF in parametric mode)")
 parser.add_argument("--nthreads", type=int, default=10, help="number of cpus used for non-parametric RMF shifting")

@@ -125,7 +125,7 @@ class XstackRunner:
         # creating output directory
         self.outdir = os.path.dirname(prefix)
         if self.outdir is not "":
-            os.makedirs(self.outdir)
+            os.makedirs(self.outdir,exist_ok=True)
 
         prefix_base = os.path.basename(prefix)
         self.o_pi_name = f"{prefix_base}pi.fits"
@@ -212,7 +212,8 @@ class XstackRunner:
             fene_fits(self.srcid_lst,self.arffene_lst,self.fene_lst,self.o_fene_name)
 
         # Move all output files to outdir
-        os.system(f"mv {self.o_pi_name} {self.o_bkgpi_name} {self.o_arf_name} {self.o_rmf_name} {self.o_fene_name} {self.outdir}")
+        if self.outdir is not "":
+            os.system(f"mv {self.o_pi_name} {self.o_bkgpi_name} {self.o_arf_name} {self.o_rmf_name} {self.o_fene_name} {self.outdir}")
 
         del self.rspmat_sft_lst # to clear memory
         
