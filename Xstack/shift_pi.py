@@ -7,7 +7,7 @@ import os
 
 
 def shift_pi(pi_file,rmf_file,z,ene_trc=None):
-    '''
+    """
     Shift a single PI to rest-frame.
     
     Parameters
@@ -31,22 +31,22 @@ def shift_pi(pi_file,rmf_file,z,ene_trc=None):
         Observed-frame channel.
     pi_coun : list
         Photon counts in each observed-frame channel.
-    '''
+    """
     with fits.open(rmf_file) as hdu:
-        mat = hdu['MATRIX'].data
-        ebo = hdu['EBOUNDS'].data
+        mat = hdu["MATRIX"].data
+        ebo = hdu["EBOUNDS"].data
     
-    chan = ebo['CHANNEL']
-    ene_lo = ebo['E_MIN']
-    ene_hi = ebo['E_MAX']
+    chan = ebo["CHANNEL"]
+    ene_lo = ebo["E_MIN"]
+    ene_hi = ebo["E_MAX"]
     ene_ce = (ene_lo + ene_hi)/2
     ene_wd = ene_hi - ene_lo
     ene_id = np.arange(len(ene_ce))
     
     with fits.open(pi_file) as hdu:
-        pi = hdu['SPECTRUM'].data
-    pi_chan = pi['CHANNEL'] # pi_chan starts from 0
-    pi_coun = pi['COUNTS'] # the obs-frame photon counts
+        pi = hdu["SPECTRUM"].data
+    pi_chan = pi["CHANNEL"] # pi_chan starts from 0
+    pi_coun = pi["COUNTS"] # the obs-frame photon counts
     assert (pi_chan == chan).all()
     chan_id = np.arange(len(pi_chan))
 
@@ -101,7 +101,7 @@ def shift_pi(pi_file,rmf_file,z,ene_trc=None):
 
 
 def add_pi(pi_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=None,arf_file=None):
-    '''
+    """
     The weighted sum of many PI files. The weights are specified by `scal_lst`. 
     
     If source PIs are to be summed, the weights should all be unity.
@@ -182,12 +182,12 @@ def add_pi(pi_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=No
     factor): so we should have better understanding of the background spectrum, and therefore smaller uncertainties, as 
     expected from `sqrt(Background counts) / scaling factor`.
     
-    '''
+    """
     pi_lst = np.array(pi_lst)
     if scal_lst is None:
         scal_lst = np.ones(pi_lst.shape[0])
     scal_lst = np.array(scal_lst)
-    assert pi_lst.shape[0] == scal_lst.shape[0], 'pi number and ratio number do not match!'
+    assert pi_lst.shape[0] == scal_lst.shape[0], "pi number and ratio number do not match!"
     
     # For spectral counts
     pi_scal_lst = pi_lst * scal_lst[:,np.newaxis]
@@ -208,42 +208,42 @@ def add_pi(pi_lst,scal_lst=None,fits_name=None,expo=10,bkg_file=None,rmf_file=No
         hdulist.append(primary_hdu)
         
         channels = np.arange(1,len(sum_pi)+1)
-        cols = [fits.Column(name='CHANNEL', format='I', array=channels),
-                fits.Column(name='COUNTS', format='J', array=sum_pi),
-                fits.Column(name='STAT_ERR', format='D', array=sum_pierr)]
-        hdu_spectrum = fits.BinTableHDU.from_columns(cols, name='SPECTRUM')
+        cols = [fits.Column(name="CHANNEL", format="I", array=channels),
+                fits.Column(name="COUNTS", format="J", array=sum_pi),
+                fits.Column(name="STAT_ERR", format="D", array=sum_pierr)]
+        hdu_spectrum = fits.BinTableHDU.from_columns(cols, name="SPECTRUM")
         hdulist.append(hdu_spectrum)
 
         # PI header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
-        hdu_spectrum.header['TELESCOP'] = 'STACKED'
-        hdu_spectrum.header['INSTRUME'] = 'STACKED'
-        hdu_spectrum.header['EXPOSURE'] = expo
+        hdu_spectrum.header["TELESCOP"] = "STACKED"
+        hdu_spectrum.header["INSTRUME"] = "STACKED"
+        hdu_spectrum.header["EXPOSURE"] = expo
         if bkg_file is not None:
-            hdu_spectrum.header['BACKFILE'] = bkg_file
-        hdu_spectrum.header['BACKSCAL'] = 1.0
-        hdu_spectrum.header['CORRSCAL'] = 1.0
+            hdu_spectrum.header["BACKFILE"] = bkg_file
+        hdu_spectrum.header["BACKSCAL"] = 1.0
+        hdu_spectrum.header["CORRSCAL"] = 1.0
         if rmf_file is not None:
-            hdu_spectrum.header['RESPFILE'] = rmf_file
+            hdu_spectrum.header["RESPFILE"] = rmf_file
         if arf_file is not None:
-            hdu_spectrum.header['ANCRFILE'] = arf_file
-        hdu_spectrum.header['AREASCAL'] = 1.0
-        hdu_spectrum.header['HDUCLASS'] = 'OGIP'
-        hdu_spectrum.header['HDUCLAS1'] = 'SPECTRUM'
-        hdu_spectrum.header['HDUVERS'] = '1.2.1'
-        hdu_spectrum.header['POISSERR'] = False # statistical errors specified in `STAT_ERR` instead
-        hdu_spectrum.header['CHANTYPE'] = 'PI'
-        hdu_spectrum.header['DETCHANS'] = len(channels)
-        hdu_spectrum.header['CREATOR'] = 'XSTACK'
-        hdu_spectrum.header['HDUCLAS2'] = 'TOTAL'
-        hdu_spectrum.header['HDUCLAS3'] = 'COUNT'
+            hdu_spectrum.header["ANCRFILE"] = arf_file
+        hdu_spectrum.header["AREASCAL"] = 1.0
+        hdu_spectrum.header["HDUCLASS"] = "OGIP"
+        hdu_spectrum.header["HDUCLAS1"] = "SPECTRUM"
+        hdu_spectrum.header["HDUVERS"] = "1.2.1"
+        hdu_spectrum.header["POISSERR"] = False # statistical errors specified in `STAT_ERR` instead
+        hdu_spectrum.header["CHANTYPE"] = "PI"
+        hdu_spectrum.header["DETCHANS"] = len(channels)
+        hdu_spectrum.header["CREATOR"] = "XSTACK"
+        hdu_spectrum.header["HDUCLAS2"] = "TOTAL"
+        hdu_spectrum.header["HDUCLAS3"] = "COUNT"
         
-        hdulist.writeto('%s'%(fits_name), overwrite=True)
+        hdulist.writeto("%s"%(fits_name), overwrite=True)
         
     return sum_pi,sum_pierr
 
 
 def add_bkgpi(bkgpi_lst,bkgscal_lst,Ngrp=10,fits_name=None,expo=10):
-    '''
+    """
     The weighted sum of background PI files. The weights are specified by `bkgscal_lst`.
     
     Group sources into bins of similar scaling ratio (considering both BACKSCAL and 
@@ -270,10 +270,10 @@ def add_bkgpi(bkgpi_lst,bkgscal_lst,Ngrp=10,fits_name=None,expo=10):
         Stacked background PI array.
     bkgpi_err : numpy.ndarray
         Stacked background PI error array.
-    '''
+    """
     bkgpi_lst = np.array(bkgpi_lst)
     bkgscal_lst = np.array(bkgscal_lst)
-    assert bkgpi_lst.shape[0] == bkgscal_lst.shape[0], 'number of bkgpis and number of scaling ratios do not match!'
+    assert bkgpi_lst.shape[0] == bkgscal_lst.shape[0], "number of bkgpis and number of scaling ratios do not match!"
     
     # Stacked bkg spectral counts calculated as stacked src spectral counts
     bkgpi, bkgpi_err_UNUSED = add_pi(bkgpi_lst,bkgscal_lst)
@@ -296,39 +296,39 @@ def add_bkgpi(bkgpi_lst,bkgscal_lst,Ngrp=10,fits_name=None,expo=10):
         hdulist.append(primary_hdu)
         
         channels = np.arange(1,len(bkgpi)+1)
-        cols = [fits.Column(name='CHANNEL', format='I', array=channels),
-                fits.Column(name='COUNTS', format='D', array=bkgpi), # BKG counts: float
-                fits.Column(name='STAT_ERR', format='D', array=bkgpi_err)]
-        hdu_spectrum = fits.BinTableHDU.from_columns(cols, name='SPECTRUM')
+        cols = [fits.Column(name="CHANNEL", format="I", array=channels),
+                fits.Column(name="COUNTS", format="D", array=bkgpi), # BKG counts: float
+                fits.Column(name="STAT_ERR", format="D", array=bkgpi_err)]
+        hdu_spectrum = fits.BinTableHDU.from_columns(cols, name="SPECTRUM")
         hdulist.append(hdu_spectrum)
 
         # PI header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, OGIP/92-007: "The OGIP Spectral File Format")
-        hdu_spectrum.header['TELESCOP'] = 'STACKED'
-        hdu_spectrum.header['INSTRUME'] = 'STACKED'
-        hdu_spectrum.header['EXPOSURE'] = expo
-        hdu_spectrum.header['BACKFILE'] = 'None'
-        hdu_spectrum.header['BACKSCAL'] = 1.0
-        hdu_spectrum.header['CORRSCAL'] = 1.0
-        hdu_spectrum.header['RESPFILE'] = 'None'
-        hdu_spectrum.header['ANCRFILE'] = 'None'
-        hdu_spectrum.header['AREASCAL'] = 1.0
-        hdu_spectrum.header['HDUCLASS'] = 'OGIP'
-        hdu_spectrum.header['HDUCLAS1'] = 'SPECTRUM'
-        hdu_spectrum.header['HDUVERS'] = '1.2.1'
-        hdu_spectrum.header['POISSERR'] = False # statistical errors specified in `STAT_ERR` instead
-        hdu_spectrum.header['CHANTYPE'] = 'PI'
-        hdu_spectrum.header['DETCHANS'] = len(channels)
-        hdu_spectrum.header['CREATOR'] = 'XSTACK'
-        hdu_spectrum.header['HDUCLAS2'] = 'BKG'
-        hdu_spectrum.header['HDUCLAS3'] = 'COUNT'
+        hdu_spectrum.header["TELESCOP"] = "STACKED"
+        hdu_spectrum.header["INSTRUME"] = "STACKED"
+        hdu_spectrum.header["EXPOSURE"] = expo
+        hdu_spectrum.header["BACKFILE"] = "None"
+        hdu_spectrum.header["BACKSCAL"] = 1.0
+        hdu_spectrum.header["CORRSCAL"] = 1.0
+        hdu_spectrum.header["RESPFILE"] = "None"
+        hdu_spectrum.header["ANCRFILE"] = "None"
+        hdu_spectrum.header["AREASCAL"] = 1.0
+        hdu_spectrum.header["HDUCLASS"] = "OGIP"
+        hdu_spectrum.header["HDUCLAS1"] = "SPECTRUM"
+        hdu_spectrum.header["HDUVERS"] = "1.2.1"
+        hdu_spectrum.header["POISSERR"] = False # statistical errors specified in `STAT_ERR` instead
+        hdu_spectrum.header["CHANTYPE"] = "PI"
+        hdu_spectrum.header["DETCHANS"] = len(channels)
+        hdu_spectrum.header["CREATOR"] = "XSTACK"
+        hdu_spectrum.header["HDUCLAS2"] = "BKG"
+        hdu_spectrum.header["HDUCLAS3"] = "COUNT"
 
-        hdulist.writeto('%s'%(fits_name), overwrite=True)
+        hdulist.writeto("%s"%(fits_name), overwrite=True)
     
     return bkgpi,bkgpi_err
 
 
 def get_bkgscal(src_file,bkg_file=None):
-    '''
+    """
     Get scaling ratio for some background spectrum:
         `scaling ratio = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo`
         
@@ -343,28 +343,28 @@ def get_bkgscal(src_file,bkg_file=None):
     -------
     bkgscal : float
         Background scaling ratio.
-    '''
+    """
     with fits.open(src_file) as hdu:
-        head = hdu['SPECTRUM'].header
-    src_expo = head['EXPOSURE']
-    src_areascal = head['AREASCAL']
-    src_backscal = head['BACKSCAL']
+        head = hdu["SPECTRUM"].header
+    src_expo = head["EXPOSURE"]
+    src_areascal = head["AREASCAL"]
+    src_backscal = head["BACKSCAL"]
 
     if bkg_file is None:
-        bkg_file = head['BACKFILE']
-    assert os.path.exists(bkg_file), 'Background file does not exist!'
+        bkg_file = head["BACKFILE"]
+    assert os.path.exists(bkg_file), "Background file does not exist!"
     with fits.open(bkg_file) as hdu:
-        head = hdu['SPECTRUM'].header
-    bkg_expo = head['EXPOSURE']
-    bkg_areascal = head['AREASCAL']
-    bkg_backscal = head['BACKSCAL']
+        head = hdu["SPECTRUM"].header
+    bkg_expo = head["EXPOSURE"]
+    bkg_areascal = head["AREASCAL"]
+    bkg_backscal = head["BACKSCAL"]
     bkgscal = src_areascal / bkg_areascal * src_backscal / bkg_backscal * src_expo / bkg_expo
     
     return bkgscal
 
 
 def get_expo(src_file):
-    '''
+    """
     Get source exposure time.
 
     Parameters
@@ -376,14 +376,14 @@ def get_expo(src_file):
     -------
     src_expo : float
         Source exposure time.
-    '''
+    """
     with fits.open(src_file) as hdu:
-        src_expo = hdu['SPECTRUM'].header['EXPOSURE']
+        src_expo = hdu["SPECTRUM"].header["EXPOSURE"]
     return src_expo
 
 
 def make_bkggrpflg(bkgscal_lst,Ngrp=4):
-    '''
+    """
     Group the `bkgscal_lst` into `Ngrp` groups, according to the scaling ratios. 
     Return an array `bkggrpflg_lst` that tells you which group each background PI spectrum should be assigned to.
     
@@ -400,12 +400,12 @@ def make_bkggrpflg(bkgscal_lst,Ngrp=4):
         An array that indicates which group each background PI spectrum should be assigned to (length = len(bkgscal_lst)).
     bkgscal_ave_lst : numpy.ndrray
         The average scaling-ratio of each group (length = `Ngrp`).
-    '''
+    """
     idx_lst = np.argsort(bkgscal_lst)
     idx_lo = np.array([int(len(idx_lst) / Ngrp * i) for i in range(Ngrp)])
     idx_hi = np.array([int(len(idx_lst) / Ngrp * (i+1)) - 1 for i in range(Ngrp)])
     
-    bkggrpflg_lst = np.zeros(len(idx_lst),dtype='int')
+    bkggrpflg_lst = np.zeros(len(idx_lst),dtype="int")
     for i in range(len(idx_lst)):
         idx = idx_lst[i]
         mask = (idx <= idx_hi) & (idx >= idx_lo)

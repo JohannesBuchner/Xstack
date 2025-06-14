@@ -16,11 +16,11 @@ runXstack your_filelist.txt 1.0 2.3 SHP
 ```
 And you will get `stack.pi`, `stackbkg.pi`, `stack.arf`, `stack.rmf`. Or more sophisticatedly:
 ```
-runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --usecpu 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf 
+runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf 
 ```
 If you want to do bootstrap, that is also easy:
 ```
-runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --usecpu 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf --resample_method bootstrap --num_bootstrap 100 --resample_outdir YourOutputDir
+runXstack your_filelist.txt 1.0 2.3 SHP --outsrc output_SRCname.pi --outbkg output_BKGname.pi --outrmf output_RMFname.rmf --outarf output_ARFname.arf --outfene output_FirstEnergyname.fene --nthreads 20 --ene_trc 0.2 --same_rmf AllSourcesUseSameRMF.rmf --resample_method bootstrap --num_bootstrap 100 --resample_outdir YourOutputDir
 ```
 Please see below for the documentation of each Args:
 
@@ -46,23 +46,24 @@ class HelpfulParser(argparse.ArgumentParser):
 		sys.exit(2)
 
 parser = HelpfulParser(description=__doc__,
-	epilog="""Shi-Jiang Chen, Johannes Buchner and Teng Liu (C) 2024 <JohnnyCsj666@gmail.com>""",
+	epilog="""Shi-Jiang Chen, Johannes Buchner and Teng Liu (C) 2025 <JohnnyCsj666@gmail.com>""",
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
 
 parser.add_argument("filelist", type=str, help="text file containing the file names")
-parser.add_argument("--outsrc", type=str, default="stack.pi", help="source PI output file name, or basename in resample mode")
-parser.add_argument("--outbkg", type=str, default="stackbkg.pi", help="Background PI output file name, or basename in resample mode")
-parser.add_argument("--outrmf", type=str, default="stack.rmf", help="RMF output file name, or basename in resample mode")
-parser.add_argument("--outarf", type=str, default="stack.arf", help="ARF output file name, or basename in resample mode")
-parser.add_argument("--outfene", type=str, default="fene.fits", help="name of output fits storing PI/ARF first energy, or basename in resample mode")
-parser.add_argument("flux_energy_lo", type=float, help="lower end of the energy range in keV for computing flux")
-parser.add_argument("flux_energy_hi", type=float, help="upper end of the energy range in keV for computing flux")
-parser.add_argument("rsp_weight_method", type=str, default="SHP", help="method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2)")
-parser.add_argument("rsp_project_gamma", type=float, default=2.0, help="prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).")
+parser.add_argument("--prefix", type=str, default="./results/stacked_", help="prefix for output stacked PI, BKGPI, ARF, and RMF files; defaults to './results/stacked_'")
+# parser.add_argument("--outsrc", type=str, default="stack.pi", help="source PI output file name, or basename in resample mode")
+# parser.add_argument("--outbkg", type=str, default="stackbkg.pi", help="Background PI output file name, or basename in resample mode")
+# parser.add_argument("--outrmf", type=str, default="stack.rmf", help="RMF output file name, or basename in resample mode")
+# parser.add_argument("--outarf", type=str, default="stack.arf", help="ARF output file name, or basename in resample mode")
+# parser.add_argument("--outfene", type=str, default="fene.fits", help="name of output fits storing PI/ARF first energy, or basename in resample mode")
+parser.add_argument("--flux_energy_lo", type=float, default=1.0, help="lower end of the energy range in keV for computing flux; defaults to 1.0")
+parser.add_argument("--flux_energy_hi", type=float, default=2.3, help="upper end of the energy range in keV for computing flux; defaults to 2.3")
+parser.add_argument("--rsp_weight_method", type=str, default="SHP", help="method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2); defaults to 'SHP'")
+parser.add_argument("--rsp_project_gamma", type=float, default=2.0, help="prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response; defaults to 2.0 (typical for AGN).")
 parser.add_argument("--parametric_rmf", action="store_true", help="method to shift RMF: parametric (gaussian) or not (re-sample response matrices)")
 parser.add_argument("--rm_ene_dsp", action="store_true", help="remove energy dispersion map (the map is used for shifting RMF in parametric mode)")
-parser.add_argument("--usecpu", type=int, default=10, help="number of cpus used for non-parametric RMF shifting")
+parser.add_argument("--nthreads", type=int, default=10, help="number of cpus used for non-parametric RMF shifting")
 parser.add_argument("--num_bkg_groups", type=int, default=10, help="number of background groups")
 parser.add_argument("--ene_trc", type=float, default=0.0, help="energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)")
 parser.add_argument("--same_rmf", type=str, default=None, help="specify the name of common rmf, if all sources are to use the same rmf")
@@ -72,7 +73,7 @@ parser.add_argument("--num_bootstrap", type=int, default=10, help="number of boo
 parser.add_argument("--bootstrap_portion", type=float, default=1.0, help="portion of sources to resample in each bootstrap experiment")
 parser.add_argument("--Ksort_filelist", type=str, default="Ksort_filelist.txt", help="name of file storing the sorting value for each source in `filelist`")
 parser.add_argument("--K", type=int, default=4, help="number of groups for KFold")
-parser.add_argument("--resample_outdir", type=str, default="resample", help="name of output directory storing resampling files")
+# parser.add_argument("--resample_outdir", type=str, default="resample", help="name of output directory storing resampling files")
 
 
 args = parser.parse_args()
@@ -145,12 +146,13 @@ def main():
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
             rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
-            usecpu=args.usecpu,                             # number of cpus used for RMF shifting
-            o_pi_name=args.outsrc,                          # name of output PI spectrum file
-            o_bkgpi_name=args.outbkg,                       # name of output background PI spectrum file
-            o_arf_name=args.outarf,                         # name of output ARF file
-            o_rmf_name=args.outrmf,                         # name of output RMF file
-            o_fene_name=args.outfene,                       # name of output fenergy file
+            nthreads=args.nthreads,                             # number of cpus used for RMF shifting
+            prefix=args.prefix,                                 # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
+            # o_pi_name=args.outsrc,                          # name of output PI spectrum file
+            # o_bkgpi_name=args.outbkg,                       # name of output background PI spectrum file
+            # o_arf_name=args.outarf,                         # name of output ARF file
+            # o_rmf_name=args.outrmf,                         # name of output RMF file
+            # o_fene_name=args.outfene,                       # name of output fenergy file
         ).run()
         print(data)
 
@@ -174,16 +176,17 @@ def main():
             Nbkggrp=args.num_bkg_groups,                   # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                          # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
             rm_ene_dsp=args.rm_ene_dsp,                    # whether or not to remove the energy dispersion map
-            usecpu=args.usecpu,                            # number of cpus used for RMF shifting
+            nthreads=args.nthreads,                            # number of cpus used for RMF shifting
             resample_method=args.resample_method,          # resample method: `bootstrap` or `KFold`
             num_bootstrap=args.num_bootstrap,              # number of bootstrap experiments in `bootstrap` method
             bootstrap_portion=args.bootstrap_portion,      # portion to resample in `bootstrap` method
-            o_dir_name=args.resample_outdir,               # name of output directory to store all bootstrap files
-            o_pi_basename=args.outsrc,                     # basename of output PI spectrum files
-            o_bkgpi_basename=args.outbkg,                  # basename of output background PI spectrum files
-            o_arf_basename=args.outarf,                    # basename of output ARF files
-            o_rmf_basename=args.outrmf,                    # basename of output RMF files
-            o_fene_basename=args.outfene,                  # basename of output fenergy files
+            prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
+            # o_dir_name=args.resample_outdir,               # name of output directory to store all bootstrap files
+            # o_pi_basename=args.outsrc,                     # basename of output PI spectrum files
+            # o_bkgpi_basename=args.outbkg,                  # basename of output background PI spectrum files
+            # o_arf_basename=args.outarf,                    # basename of output ARF files
+            # o_rmf_basename=args.outrmf,                    # basename of output RMF files
+            # o_fene_basename=args.outfene,                  # basename of output fenergy files
         ).run()
         print(data)
 
@@ -215,16 +218,17 @@ def main():
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
             rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
-            usecpu=args.usecpu,                             # number of cpus used for RMF shifting
+            nthreads=args.nthreads,                             # number of cpus used for RMF shifting
             resample_method=args.resample_method,           # resample method: `bootstrap` or `KFold`
             K=args.K,                                       # number of subgroups to divide the original sample into in `KFold` method
             Ksort_lst=Ksort_lst,                            # value list  used to sort the original sample in `KFold` method
-            o_dir_name=args.resample_outdir,                # name of output directory to store all bootstrap files
-            o_pi_basename=args.outsrc,                      # basename of output PI spectrum files
-            o_bkgpi_basename=args.outbkg,                   # basename of output background PI spectrum files
-            o_arf_basename=args.outarf,                     # basename of output ARF files
-            o_rmf_basename=args.outrmf,                     # basename of output RMF files
-            o_fene_basename=args.outfene,                   # basename of output fenergy files
+            prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
+            # o_dir_name=args.resample_outdir,                # name of output directory to store all bootstrap files
+            # o_pi_basename=args.outsrc,                      # basename of output PI spectrum files
+            # o_bkgpi_basename=args.outbkg,                   # basename of output background PI spectrum files
+            # o_arf_basename=args.outarf,                     # basename of output ARF files
+            # o_rmf_basename=args.outrmf,                     # basename of output RMF files
+            # o_fene_basename=args.outfene,                   # basename of output fenergy files
         ).run()
         print(data)
 

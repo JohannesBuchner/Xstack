@@ -35,7 +35,7 @@ class XstackRunner:
     data.run()  # this will produce the stacked PI, bkgPI, ARF, RMF in one go
     """
     def __init__(
-            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,usecpu=1,o_pi_name=None,o_bkgpi_name=None,o_arf_name=None,o_rmf_name=None,o_fene_name=None
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,nthreads=1,prefix="./results/stacked_",
         ):
         """
         Parameters
@@ -83,18 +83,10 @@ class XstackRunner:
             Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically set as 0.2 keV. Defaults to None.
         rm_ene_dsp : bool, optional
             Whether or not to remove the energy dispersion map at each run. Generating dispersion map could take some time. Defaults to False.
-        usecpu : int, optional
+        nthreads : int, optional
             Number of CPUs used in shifting RSP.
-        o_pi_name : str, optional
-            Name of output PI spectrum file. Defaults to None (do not produce output files).
-        o_bkgpi_name : str, optional
-            Name of output background PI spectrum file. Defaults to None (do not produce output files).
-        o_arf_name : str, optional
-            Name of output ARF file. Defaults to None (do not produce output files).
-        o_rmf_name : str, optional
-            Name of output RMF file. Defaults to None (do not produce output files).
-        o_fene_name : str, optional
-            Name of output first energy file. Defaults to None (do not produce output files).
+        prefix : str, optional
+            Prefix for output stacked PI, BKGPI, ARF, and RMF files. Defaults to './results/stacked_'
         """
         self.pifile_lst = pifile_lst
         self.arffile_lst = arffile_lst
@@ -128,12 +120,19 @@ class XstackRunner:
         else:
             self.Nbkggrp = Nbkggrp
         self.ene_trc = ene_trc
-        self.usecpu = usecpu
-        self.o_pi_name = o_pi_name
-        self.o_bkgpi_name = o_bkgpi_name
-        self.o_arf_name = o_arf_name
-        self.o_rmf_name = o_rmf_name
-        self.o_fene_name = o_fene_name
+        self.nthreads = nthreads
+
+        # creating output directory
+        self.outdir = os.path.dirname(prefix)
+        if self.outdir is not "":
+            os.makedirs(self.outdir)
+
+        prefix_base = os.path.basename(prefix)
+        self.o_pi_name = f"{prefix_base}pi.fits"
+        self.o_bkgpi_name = f"{prefix_base}bkgpi.fits"
+        self.o_arf_name = f"{prefix_base}arf.fits"
+        self.o_rmf_name = f"{prefix_base}rmf.fits"
+        self.o_fene_name = f"{prefix_base}fene.fits"
 
         # creating empty lists to store results
         self.pi_sft_lst = []
@@ -163,12 +162,13 @@ class XstackRunner:
         print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV")
         print(f"ARF Truncation energy: {self.ene_trc} keV")
         print(f"RMF shifting method: {self.rmfsft_method}")
-        print(f"Number of CPUs used for shifting RMF: {self.usecpu}")
+        print(f"Number of CPUs used for shifting RMF: {self.nthreads}")
         print(f"Number of background groups: {self.Nbkggrp}")
-        print(f"Output PI spectrum (base)name: {self.o_pi_name}")
-        print(f"Output bkg PI spectrum (base)name: {self.o_bkgpi_name}")
-        print(f"Output ARF (base)name: {self.o_arf_name}")
-        print(f"Output RMF (base)name: {self.o_rmf_name}")
+        print(f"Output directory: {self.outdir}")
+        print(f"Output PI spectrum (base)name: {os.path.join(self.outdir,self.o_pi_name)}")
+        print(f"Output bkg PI spectrum (base)name: {os.path.join(self.outdir,self.o_bkgpi_name)}")
+        print(f"Output ARF (base)name: {os.path.join(self.outdir,self.o_arf_name)}")
+        print(f"Output RMF (base)name: {os.path.join(self.outdir,self.o_rmf_name)}")
         
         with fits.open(self.sample_rmf) as hdu:
             mat = hdu["MATRIX"].data
@@ -183,7 +183,7 @@ class XstackRunner:
         # SHIFTING
         print("****************** Shifting ... ********************")
         ## use backend="loky" to avoid memory leakage
-        results = Parallel(n_jobs=self.usecpu,backend="loky")(delayed(self.process_entry)(i) for i in tqdm(range(len(self.srcid_lst))))
+        results = Parallel(n_jobs=self.nthreads,backend="loky")(delayed(self.process_entry)(i) for i in tqdm(range(len(self.srcid_lst))))
         for result in results:
             pi_sft, bkgpi_sft, rspmat_sft, bkgscal, expo, arffene, fene = result
             self.pi_sft_lst.append(pi_sft)
@@ -199,10 +199,10 @@ class XstackRunner:
         print("****************** Stacking ... ********************")
         expo = np.sum(self.expo_lst)
         pi_stk,pierr_stk = add_pi(
-            self.pi_sft_lst,fits_name=self.o_pi_name,expo=expo,bkg_file=self.o_bkgpi_name,rmf_file=self.o_rmf_name,arf_file=self.o_arf_name
+            self.pi_sft_lst,fits_name=self.o_pi_name,expo=expo,bkg_file=self.o_bkgpi_name,rmf_file=self.o_rmf_name,arf_file=self.o_arf_name,
         )
         bkgpi_stk,bkgpierr_stk = add_bkgpi(
-            self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,Ngrp=self.Nbkggrp,fits_name=self.o_bkgpi_name,expo=expo
+            self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,Ngrp=self.Nbkggrp,fits_name=self.o_bkgpi_name,expo=expo,
         )
         arf_stk, rmf_stk = add_rsp(
             self.rspmat_sft_lst,self.pi_sft_lst,self.z_lst,bkgpi_lst=self.bkgpi_sft_lst,bkgscal_lst=self.bkgscal_lst,ene_lo=ene_lo,ene_hi=ene_hi,arfene_lo=iene_lo,arfene_hi=iene_hi,expo_lst=self.expo_lst,int_rng=self.int_rng,rspwt_method=self.rspwt_method,rspproj_gamma=self.rspproj_gamma,outarf_name=self.o_arf_name,sample_arf=self.sample_arf,srcid_lst=self.srcid_lst,outrmf_name=self.o_rmf_name,sample_rmf=self.sample_rmf
@@ -210,6 +210,9 @@ class XstackRunner:
         
         if self.o_fene_name is not None:
             fene_fits(self.srcid_lst,self.arffene_lst,self.fene_lst,self.o_fene_name)
+
+        # Move all output files to outdir
+        os.system(f"mv {self.o_pi_name} {self.o_bkgpi_name} {self.o_arf_name} {self.o_rmf_name} {self.o_fene_name} {self.outdir}")
 
         del self.rspmat_sft_lst # to clear memory
         

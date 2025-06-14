@@ -4,6 +4,7 @@ from astropy.io import fits
 from numba import jit
 from astropy.cosmology import Planck18
 import astropy.units as u
+import os
 from tqdm import tqdm
 
 
@@ -115,7 +116,7 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
 def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,ene_hi=None,arfene_lo=None,arfene_hi=None,
             expo_lst=None,int_rng=(1.0,2.3),rspwt_method="SHP",rspproj_gamma=2.0,outarf_name=None,sample_arf="sample.arf",srcid_lst=None,outrmf_name=None,sample_rmf="sample.rmf"):
     """
-    Weighted sum of ARF specresp.
+    Weighted sum of full response.
 
     Parameters
     ----------
@@ -251,7 +252,7 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
                 fits.Column(name="PHOCOUN", format="J", array=np.sum(pi_lst,axis=1)),
                 fits.Column(name="BPHOCOUN", format="D", array=np.sum(bkgpi_lst*bkgscal_lst[:,np.newaxis],axis=1))]
         hdu_weight = fits.BinTableHDU.from_columns(cols, name="WEIGHT")
-        hdu_weight.header["RSPNOR"] = rspnorm
+        hdu_weight.header["RSPNORM"] = rspnorm
         hdulist.append(hdu_weight)
 
         # extension 3: FLAG
@@ -320,7 +321,7 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         hdu_matrix.header["HDUVERS"] = "1.3.0"
         hdu_matrix.header["TLMIN4"] = 1 # the first channel in the response
         hdu_matrix.header["EXPOSURE"] = expo_lst.sum()
-        hdu_matrix.header["ANCRFILE"] = outarf_name # TODO: save under the same dir?
+        hdu_matrix.header["ANCRFILE"] = outarf_name     # NOTE: assuming under the same path
         hdu_matrix.header["CREATOR"] = "XSTACK"
         hdulist.append(hdu_matrix)
         
