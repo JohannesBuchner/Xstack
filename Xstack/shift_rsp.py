@@ -687,3 +687,39 @@ def get_prob(mat,ebo):
             f_matrix += n_chan_j
 
     return prob
+
+
+def get_prob1d(n_grp,f_chan,n_chan,matrix1d,Nene,f_chan_0=0):
+    """
+    Get the 1d probability distribution for output channel energy at a specific input model energy.
+
+    Parameters
+    ----------
+    n_grp : int
+        `N_GRP` array of your specific input model energy, from `MATRIX` extension.
+    f_chan : int
+        `F_CHAN` array of your specific input model energy, from `MATRIX` extension.
+    n_chan : int
+        `N_CHAN` array of your specific input model energy, from `MATRIX` extension.
+    matrix1d : numpy.ndarray
+        `MATRIX` array of your specific input model energy, from `MATRIX` extension.
+    Nene : int
+        Length of output channel energy.
+    f_chan_0 : int, optional
+        The index number of the first output channel energy (0 or 1). Defaults to 0.
+
+    Returns
+    -------
+    prob1d : numpy.ndarray
+        The 1d probability distribution for output channel energy at a specific input model energy.
+    """
+    f_matrix = 0   # starting index of matrix1d
+    prob1d = np.zeros(Nene)
+    for j in range(n_grp):
+        f_chan_j = f_chan[j] - f_chan_0         # starting index of channel
+        n_chan_j = n_chan[j]                    # number of channel
+        e_chan_j = f_chan_j + n_chan_j          # ending index of in channel
+        e_matrix = f_matrix + n_chan_j          # ending index of matrix[i]
+        prob1d[f_chan_j:e_chan_j] += matrix1d[f_matrix:e_matrix]
+        f_matrix += n_chan_j
+    return prob1d

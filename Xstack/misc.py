@@ -13,8 +13,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy.interpolate import RegularGridInterpolator
 from joblib import Parallel,delayed
 from tqdm import tqdm
-from Xstack.shift_arf import align_arf
-from Xstack.shift_rmf import get_prob,get_prob1d
+from Xstack.shift_rsp import get_prob,get_prob1d
 from Xstack.shift_pi import get_bkgscal,get_expo
 
 
@@ -1054,6 +1053,67 @@ def concat_arf(arffile1,arffile2,Es,Ee,Ngrid,out_name):
     hdu_lst.writeto('%s'%(out_name), overwrite=True)
 
     return specresp
+
+
+def align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob=None):
+    '''
+    The ARF energy bin and RMF energy bin (also the PI channel energy bin) does not always match. Align the ARF
+    to get the effective area at each RMF energy bin.
+
+    Parameters
+    ----------
+    ene_lo : numpy.ndarray
+        Lower edge of output channel energy bin.
+    ene_hi : numpy.ndarray
+        Upper edge of output channel energy bin.
+    arfene_lo : numpy.ndarray
+        Lower edge of input model energy (ARF energy) bin.
+    arfene_hi : numpy.ndarray
+        Upper edge of input model energy (ARF energy) bin.
+    specresp : numpy.ndarray
+        The ARF specresp (cm^2 vs. arf energy).
+    prob : numpy.ndarray
+        RMF 2D matrix (prob.shape=(len(arfene_lo),len(ene_lo))).
+
+    Returns
+    -------
+    specresp_ali : numpy.ndarray
+        The aligned ARF specresp.
+    '''
+    assert ene_lo.shape == ene_hi.shape, ''
+    
+    if prob is None:
+        arfene_wd = arfene_hi - arfene_lo
+        specresp_ali = np.zeros(len(ene_lo))    # aligned specresp
+        for i in range(len(specresp_ali)):
+            mask = (ene_lo[i] <= arfene_hi) & (ene_hi[i] >= arfene_lo)
+            if np.all(mask==False):
+                continue
+            arfene_mask_lo = arfene_lo[mask].copy()
+            arfene_mask_hi = arfene_hi[mask].copy()
+            arfene_mask_wd = arfene_wd[mask].copy()
+            specresp_mask = specresp[mask].copy()
+            
+            # for the first and last masked channel, we need to recalculate their widths
+            arfene_mask_wd[0] = arfene_mask_hi[0] - ene_lo[i]
+            arfene_mask_wd[-1] = ene_hi[i] - arfene_mask_lo[-1]
+            
+            prob_mask = arfene_mask_wd / arfene_mask_wd.sum()
+            specresp_ali[i] = (specresp_mask * prob_mask).sum()
+
+    else:
+        arfene_ce = (arfene_lo + arfene_hi) / 2
+        arfene_wd = arfene_hi - arfene_lo
+        ene_ce = (ene_lo + ene_hi) / 2
+        ene_wd = ene_hi - ene_lo
+        assert prob.shape[0] == len(arfene_ce), ''
+        assert prob.shape[1] == len(ene_ce), ''
+
+        specresp_arfenewd = specresp * arfene_wd
+        specresp_arfenewd_ali = np.sum(specresp_arfenewd[:,np.newaxis]*prob,axis=0)
+        specresp_ali = specresp_arfenewd_ali / ene_wd
+        
+    return specresp_ali
 
 
 #===================================================
