@@ -1,12 +1,13 @@
 import numpy as np
 import os
-fkspec_dir = os.path.join(os.path.dirname(__file__),'fkspec_sh')
+import subprocess
+fkspec_dir = os.path.join(os.path.dirname(__file__),"fkspec_sh")
 
 #===================================================
 ################## SIMULTION #######################
 #===================================================
 def make_fkspec(spec_model,par_lst,seed,spec_dir,src_file,rmf_file,arf_file,out_pre,out_dir,log_dir,src_expo=None,bkg_expo=None):
-    '''
+    """
     Make fake spectrum.
 
     Parameters
@@ -62,24 +63,45 @@ def make_fkspec(spec_model,par_lst,seed,spec_dir,src_file,rmf_file,arf_file,out_
     -------
     None
     
-    '''
-    os.system('mkdir -p %s'%out_dir)
-    os.system('mkdir -p %s'%log_dir)
+    """
+    os.makedirs(out_dir,exist_ok=True)
+    os.makedirs(log_dir,exist_ok=True)
 
     if src_expo is None:
-        src_expo = ' '
+        src_expo = " "
     else:
         src_expo = str(src_expo)
     if bkg_expo is None:
-        bkg_expo = ' '
+        bkg_expo = " "
     else:
         bkg_expo = str(bkg_expo)
     
-    sh_file = '%s/%s.sh'%(fkspec_dir,spec_model)
+    sh_file = f"{fkspec_dir}/{spec_model}.sh"
 
     par_lst = [str(ele) for ele in par_lst]
-    par_str = ' '.join(par_lst)
-    os.system("%s %s %d %s %s %s %s %s %s %s %s > %s/%s.log 2>&1"%(sh_file,par_str,seed,src_expo,bkg_expo,spec_dir,src_file,rmf_file,arf_file,out_pre,out_dir,log_dir,out_pre))
+    # par_str = ' '.join(par_lst)
+
+    result = subprocess.run([
+        sh_file,
+        *par_lst,
+        str(seed),
+        src_expo,
+        bkg_expo,
+        spec_dir,
+        src_file,
+        rmf_file,
+        arf_file,
+        out_pre,
+        out_dir,
+    ], capture_output=True, text=True)
+
+    # Write captured output to log file
+    with open(f"{log_dir}/{out_pre}.log", "w") as logfile:
+        logfile.write(result.stdout)
+
+    # Handle errors if necessary
+    if result.stderr:
+        print(f"Error: {result.stderr}")
 
     # if run_sh == True:  # if you want to generate the spectrum right away
     #     os.system("bash %s %s %d %s %s %s %s %s %s %s > %s/%s.log 2>&1"%(sh_file,par_str,seed,spec_dir,src_file,arf_file,out_pre,out_dir,src_expo,bkg_expo,log_dir,out_pre))
@@ -89,7 +111,7 @@ def make_fkspec(spec_model,par_lst,seed,spec_dir,src_file,rmf_file,arf_file,out_
     return
 
 def pofluxconv(flux1,start1,end1,start2,end2,alpha):
-    '''
+    """
     
     Parameters
     ----------
@@ -116,6 +138,6 @@ def pofluxconv(flux1,start1,end1,start2,end2,alpha):
     flux2 : float
         the converted flux (erg/s/cm^2)
 
-    '''
+    """
     flux2 = flux1 * (start2**(-alpha+1) - end2**(-alpha+1))/(start1**(-alpha+1) - end1**(-alpha+1))
     return flux2

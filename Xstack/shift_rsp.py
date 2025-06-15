@@ -9,10 +9,10 @@ from tqdm import tqdm
 
 
 # shift_rsp
-def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method="NONPAR"):
+def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None):
     """
     Shift the ARF&RMF. This is literally done by three steps: 
-    1) Combine input ARF and RMF into a single RSP matrix;
+    1) Combine input ARF and RMF into a single RSP matrix (full response);
     1) Shift in the direction of output channel energy. That is to say, shift and broaden the probability profile for 
        each input energy (i.e. when the detector receive a photon with some input energy, the probability that a signal 
        at some output channel energy will be observed; so this is a function of output channel energy) by (1+z); 
@@ -37,13 +37,6 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
         The galactic absorption nh of the source (e.g. 3e20). Defaults to 1e20.
     ene_trc : float, optional
         Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically 0.2 keV. Defaults to None.
-    rmfsft_method : str, optional
-        The RMF shifting method. Two methods are available:
-        - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, 
-          and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is 
-          more time-consuming than PARameterized method (~10^2 times slower).
-        - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
-        Defaults to `NONPAR`.
 
     Returns
     -------
@@ -98,14 +91,8 @@ def shift_rsp(arffile,rmffile,z,nh_file=None,nh=1e20,ene_trc=None,rmfsft_method=
     prob = get_prob(mat,ebo)                # the RMF 2D matrix, shape=(iene_ce, ene_ce)
     rspmat = prob*specresp[:,np.newaxis]    # the RSP matrix (RMF*ARF)
 
-    # finally, shift the RSP matrix
-    if rmfsft_method == "NONPAR":
-        rspmat_sft = shift_matrix_nonpar(rspmat,arfene_lo,arfene_hi,ene_lo,ene_hi,z)
-    elif rmfsft_method == "PAR":
-        # TODO: add the parameterized method!
-        raise Exception("NOT READY YET!")
-    else:
-        raise Exception("Available rmfsft_method (RMF shifting method): `PAR` or `NONPAR` (see help(shift_rmf) for illustration)!")   
+    # finally, shift the RSP matrix (currently we use only Non-parametric method, which is the most accurate one)
+    rspmat_sft = shift_matrix_nonpar(rspmat,arfene_lo,arfene_hi,ene_lo,ene_hi,z)
 
     del mat,ebo,prob    # to clear memory
 
@@ -157,7 +144,7 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         Source ID list. Defaults to None.
     outrmf_name : str, optional
         If specified, extract the RMF from the stacked RSP and create a fits file named `outrmf_name`. Defaults to None.
-     sample_rmf : str, optional
+    sample_rmf : str, optional
         A sample RMF to read `ene_lo` and `ene_hi`. Defaults to "sample.rmf".
     
     Returns

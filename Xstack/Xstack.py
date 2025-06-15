@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-##############################################
-############# MAIN FUNCTION ##################
-##############################################
+"""
+This is the main wrapper module for all spectral shifting+stacking procedures. 
+
+Authors: Shi-Jiang Chen (MPE, USTC), Johannes Buchner (MPE), Teng Liu (USTC)
+Contact: JohnnyCsj666@gmail.com
+
+"""
 from .shift_pi import *
 from .shift_rsp import *
 from .misc import fene_fits
@@ -14,28 +18,34 @@ import gc
 import os
 default_nh_file = os.path.join(os.path.dirname(__file__), "tbabs_1e20.txt")
 
+with open("VERSION") as f:
+    lines = f.readlines()
+    version = lines[0].strip()
+    lastupdate = lines[1].strip()
+
+##############################################
+############# MAIN FUNCTION ##################
+##############################################
 class XstackRunner:
     """
     X-ray Spectral Shifting & Stacking.
 
     Example usage
     -------------
+    ```python
     data = XstackRunner(
         pifile_lst = your_pifile_lst,
         arffile_lst = your_arffile_lst,
         rmffile_lst = your_rmffile_lst,
         z_lst = your_z_lst,
         bkgpifile_lst = your_bkgpifile_lst,
-        o_pi_name = "src.fits",
-        o_bkgpi_name = "bkg.fits",
-        o_arf_name = "arf.fits",
-        o_rmf_name = "rmf.fits",
-        o_fene_name = "fene.fits",    ### and other arguments if you like
+        prefix = './results/stacked_',
     )
     data.run()  # this will produce the stacked PI, bkgPI, ARF, RMF in one go
+    ```
     """
     def __init__(
-            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,nthreads=1,prefix="./results/stacked_",
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,nthreads=1,prefix="./results/stacked_",
         ):
         """
         Parameters
@@ -63,10 +73,6 @@ class XstackRunner:
             The prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).
         int_rng : tuple of (float,float), optional
             The energy (keV) range for computing flux. Defaults to (1.0,2.3).
-        rmfsft_method : str, optional
-            The RMF shifting method. Defaults to `NONPAR`. Two methods are available:
-            - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is more time-consuming than parameterized method (~10^2 times slower).
-            - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
         sample_rmf : str, optional
             Name of sample RMF. Defaults to None.
         sample_arf : str, optional
@@ -81,8 +87,6 @@ class XstackRunner:
             Number of groups with similar background-to-source scaling ratio. Defaults to 10.
         ene_trc : float, optional
             Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically set as 0.2 keV. Defaults to None.
-        rm_ene_dsp : bool, optional
-            Whether or not to remove the energy dispersion map at each run. Generating dispersion map could take some time. Defaults to False.
         nthreads : int, optional
             Number of CPUs used in shifting RSP.
         prefix : str, optional
@@ -104,7 +108,6 @@ class XstackRunner:
         self.rspwt_method = rspwt_method
         self.rspproj_gamma = rspproj_gamma
         self.int_rng = int_rng
-        self.rmfsft_method = rmfsft_method
         if sample_rmf is None:
             self.sample_rmf = rmffile_lst[0]
         else:
@@ -151,8 +154,9 @@ class XstackRunner:
         print("#######################################################")
         print("################ Welcome to Xstack! ###################")
         print("#######################################################")
-        print("This is the new version of Xstack: first combine ARF and RMF into RSP and then shift/stack!")
-        print("****************** Input Check ... ********************")
+        print(f"Version: {version}")
+        print(f"Last updated: {lastupdate}")
+        print("******************* Input Summary *********************")
         print(f"Number of sources: {len(self.pifile_lst)}")
         print(f"Redshift range: {np.min(self.z_lst):.3f} -- {np.max(self.z_lst):.3f}")
         print(f"NH range: {np.min(self.nh_lst)} -- {np.max(self.nh_lst)}")
@@ -161,7 +165,6 @@ class XstackRunner:
         print(f"RSP projection gamma: {self.rspproj_gamma}")
         print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV")
         print(f"ARF Truncation energy: {self.ene_trc} keV")
-        print(f"RMF shifting method: {self.rmfsft_method}")
         print(f"Number of CPUs used for shifting RMF: {self.nthreads}")
         print(f"Number of background groups: {self.Nbkggrp}")
         print(f"Output directory: {self.outdir}")
@@ -181,7 +184,7 @@ class XstackRunner:
         del hdu["MATRIX"].data,hdu["EBOUNDS"].data  # to clear memory
         
         # SHIFTING
-        print("****************** Shifting ... ********************")
+        print("******************* Shifting ... **********************")
         ## use backend="loky" to avoid memory leakage
         results = Parallel(n_jobs=self.nthreads,backend="loky")(delayed(self.process_entry)(i) for i in tqdm(range(len(self.srcid_lst))))
         for result in results:
@@ -196,7 +199,7 @@ class XstackRunner:
         del results
 
         # STACKING
-        print("****************** Stacking ... ********************")
+        print("******************* Stacking ... **********************")
         expo = np.sum(self.expo_lst)
         pi_stk,pierr_stk = add_pi(
             self.pi_sft_lst,fits_name=self.o_pi_name,expo=expo,bkg_file=self.o_bkgpi_name,rmf_file=self.o_rmf_name,arf_file=self.o_arf_name,
@@ -239,7 +242,7 @@ class XstackRunner:
             (bkgpi_chan_sft,bkgpi_coun_sft,bkgpi_chan,bkgpi_coun) = shift_pi(bkgpifile,self.sample_rmf,z,self.ene_trc)
         bkgpi_sft = bkgpi_coun_sft.astype("float64")
         # RSP shifting
-        rspmat_sft = shift_rsp(arffile,rmffile,z,self.nh_file,nh=nh,ene_trc=self.ene_trc,rmfsft_method="NONPAR")
+        rspmat_sft = shift_rsp(arffile,rmffile,z,self.nh_file,nh=nh,ene_trc=self.ene_trc)
         
         # first energy
         with fits.open(rmffile) as hdu:

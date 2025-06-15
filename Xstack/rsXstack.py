@@ -1,6 +1,11 @@
-##############################################
-############# MAIN FUNCTION ##################
-##############################################
+#!/usr/bin/env python3
+"""
+This is the bootstrap (resampling) wrapper module for all spectral shifting+stacking procedures, by repeatedly calling Xstack.py. 
+
+Authors: Shi-Jiang Chen (MPE, USTC), Johannes Buchner (MPE), Teng Liu (USTC)
+Contact: JohnnyCsj666@gmail.com
+
+"""
 import numpy as np
 from astropy.io import fits
 import shutil
@@ -18,30 +23,32 @@ from .Xstack import XstackRunner
 #         return backend, None
 ###################################
 
+##############################################
+############# MAIN FUNCTION ##################
+##############################################
 class resample_XstackRunner:
     """
     A batch of `XstackRunner` objects. Used for producing bootstrap (or K-Fold) stacked spectra.
 
     Example usage
     -------------
+    ```python
     data = resample_XstackRunner(
         pifile_lst = your_pifile_lst,
         arffile_lst = your_arffile_lst,
         rmffile_lst = your_rmffile_lst,
         z_lst = your_z_lst,
         bkgpifile_lst = your_bkgpifile_lst,
-        o_dir_name = "bootstrap",
-        o_pi_basename = "src.fits",
-        o_bkgpi_basename = "bkg.fits",
-        o_arf_basename = "arf.fits",
-        o_rmf_basename = "rmf.fits",
-        o_fene_basename = "fene.fits",
+        resample_method = 'bootstrap',
+        num_bootstrap = 100,
+        prefix = './results/stacked_',
         # and other arguments if you like
     )
-    data.run()  # this will produce a batch of bootstrap stacked PIs, bkgPIs, ARFs, RMFs under `bootstrap` directory 
+    data.run()  # this will produce a batch of bootstrap stacked PIs, bkgPIs, ARFs, RMFs under `bootstrap` directory
+    ```
     """
     def __init__(
-            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),rmfsft_method="NONPAR",sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,rm_ene_dsp=False,nthreads=1,resample_method="bootstrap",num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,prefix="./results/stacked_",
+            self,pifile_lst,arffile_lst,rmffile_lst,z_lst,bkgpifile_lst=None,nh_lst=None,srcid_lst=None,rspwt_method="SHP",rspproj_gamma=2.0,int_rng=(1.0,2.3),sample_rmf=None,sample_arf=None,nh_file=None,Nbkggrp=10,ene_trc=None,nthreads=1,resample_method="bootstrap",num_bootstrap=10,bootstrap_portion=1.0,K=4,Ksort_lst=None,prefix="./results/stacked_",
         ):
         """
         Parameters
@@ -69,10 +76,6 @@ class resample_XstackRunner:
             The prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).
         int_rng : tuple of (float,float), optional
             The energy (keV) range for computing flux. Defaults to (1.0,2.3).
-        rmfsft_method : str, optional
-            The RMF shifting method. Defaults to `NONPAR`. Two methods are available:
-            - `NONPAR`: Non-PARameterized method, i.e. shift the probability profile directly. This should be more accurate, and takes into account the off-diagonal elements in the RMF matrix. However, the non-PARameterized method is more time-consuming than PARameterized method (~10^2 times slower).
-            - `PAR`: Parameterized method, i.e. approximate the probability profile with a Gaussian, and shift the Gaussians.
         sample_rmf : str, optional
             Name of sample RMF. Defaults to None.
         sample_arf : str, optional
@@ -87,8 +90,6 @@ class resample_XstackRunner:
             Number of groups with similar background-to-source scaling ratio. Defaults to 10.
         ene_trc : float, optional
             Truncate energy below which manually set ARF and PI counts to zero. For eROSITA, `ene_trc` is typically set as 0.2 keV. Defaults to None.
-        rm_ene_dsp : bool, optional
-            Whether or not to remove the energy dispersion map at each run. Generating dispersion map could take some time. Defaults to False.
         nthreads : int, optional
             Number of CPUs used in shifting RSP.
         resample_method : str, optional
@@ -103,18 +104,8 @@ class resample_XstackRunner:
             Number of subgroups to divide the original sample into in `KFold` method. Defaults to 4.
         Ksort_lst : list or numpy.ndarray, optional
             The value list (same length as the original sample) used to sort the original sample in `KFold` method.
-        o_dir_name : str, optional
-            Name of output directory to store all bootstrap files.
-        o_pi_basename : str, optional
-            Basename of output PI spectrum files. Defaults to None (do not produce output files). E.g., if `o_pi_basename`=stack.pi, then you will get resampled PI files like stack01.pi, stack02.pi, ... .
-        o_bkgpi_basename : str, optional
-            Basename of output background PI spectrum files. Defaults to None (do not produce output files).
-        o_arf_basename : str, optional
-            Basename of output ARF files. Defaults to None (do not produce output files).
-        o_rmf_basename : str, optional
-            Basename of output RMF files. Defaults to None (do not produce output files).
-        o_fene_basename : str, optional
-            Basename of output fenergy files. Defaults to None (do not produce output files).
+        prefix : str, optional
+            Prefix for all output stacked PI, BKGPI, ARF, RMF, FENE files. Defaults to './results/stacked_'.
         """
         self.pifile_lst = np.array(pifile_lst)
         self.arffile_lst = np.array(arffile_lst)
@@ -133,7 +124,6 @@ class resample_XstackRunner:
         self.rspwt_method = rspwt_method
         self.rspproj_gamma = rspproj_gamma
         self.int_rng = int_rng
-        self.rmfsft_method = rmfsft_method
         if sample_rmf is None:
             self.sample_rmf = rmffile_lst[0]
         else:
@@ -149,7 +139,6 @@ class resample_XstackRunner:
         else:
             self.Nbkggrp = Nbkggrp
         self.ene_trc = ene_trc
-        self.rm_ene_dsp = rm_ene_dsp
         self.nthreads = nthreads
         self.resample_method = resample_method
         if resample_method not in ["bootstrap","KFold"]:
@@ -169,16 +158,6 @@ class resample_XstackRunner:
         if self.outdir is not "":
             os.makedirs(self.outdir,exist_ok=True)
         self.prefix = prefix
-
-        # if o_dir_name is None:
-        #     self.o_dir_name = resample_method
-        # else:
-        #     self.o_dir_name = o_dir_name
-        # self.o_pi_basename = o_pi_basename
-        # self.o_bkgpi_basename = o_bkgpi_basename
-        # self.o_arf_basename = o_arf_basename
-        # self.o_rmf_basename = o_rmf_basename
-        # self.o_fene_basename = o_fene_basename
 
         self.XstackRunner_lst = []
 
@@ -202,11 +181,6 @@ class resample_XstackRunner:
                 sampled_nh_lst = self.nh_lst[sampled_idx]
                 sampled_srcid_lst = self.srcid_lst[sampled_idx]
                 prefix_i = f"{self.prefix}{idx}"
-                # o_pi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_pi_basename)[0]}_{idx}{os.path.splitext(self.o_pi_basename)[1]}"
-                # o_bkgpi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_bkgpi_basename)[0]}_{idx}{os.path.splitext(self.o_bkgpi_basename)[1]}"
-                # o_arf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_arf_basename)[0]}_{idx}{os.path.splitext(self.o_arf_basename)[1]}"
-                # o_rmf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_rmf_basename)[0]}_{idx}{os.path.splitext(self.o_rmf_basename)[1]}"
-                # o_fene_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_fene_basename)[0]}_{idx}{os.path.splitext(self.o_fene_basename)[1]}"
                 
                 XstackRunner_i = XstackRunner(
                     pifile_lst=sampled_pifile_lst,
@@ -219,20 +193,13 @@ class resample_XstackRunner:
                     rspwt_method=self.rspwt_method,
                     rspproj_gamma=self.rspproj_gamma,
                     int_rng=self.int_rng,
-                    rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,
                     sample_arf=self.sample_arf,
                     nh_file=self.nh_file,
                     Nbkggrp=self.Nbkggrp,
                     ene_trc=self.ene_trc,
-                    rm_ene_dsp=self.rm_ene_dsp,
                     nthreads=self.nthreads,
                     prefix=prefix_i,
-                    # o_pi_name=o_pi_name_i,
-                    # o_bkgpi_name=o_bkgpi_name_i,
-                    # o_arf_name=o_arf_name_i,
-                    # o_rmf_name=o_rmf_name_i,
-                    # o_fene_name=o_fene_name_i,
                 )
                 self.XstackRunner_lst.append(XstackRunner_i)
 
@@ -263,11 +230,6 @@ class resample_XstackRunner:
                 sampled_sortednh_lst = sortednh_lst[mask]
                 sampled_sortedsrcid_lst = sortedsrcid_lst[mask]
                 prefix_i = f"{self.prefix}{idx}"
-                # o_pi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_pi_basename)[0]}_{idx}{os.path.splitext(self.o_pi_basename)[1]}"
-                # o_bkgpi_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_bkgpi_basename)[0]}_{idx}{os.path.splitext(self.o_bkgpi_basename)[1]}"
-                # o_arf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_arf_basename)[0]}_{idx}{os.path.splitext(self.o_arf_basename)[1]}"
-                # o_rmf_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_rmf_basename)[0]}_{idx}{os.path.splitext(self.o_rmf_basename)[1]}"
-                # o_fene_name_i = f"{self.o_dir_name}/{os.path.splitext(self.o_fene_basename)[0]}_{idx}{os.path.splitext(self.o_fene_basename)[1]}"
 
                 XstackRunner_i = XstackRunner(
                     pifile_lst=sampled_sortedpifile_lst,
@@ -280,20 +242,13 @@ class resample_XstackRunner:
                     rspwt_method=self.rspwt_method,
                     rspproj_gamma=self.rspproj_gamma,
                     int_rng=self.int_rng,
-                    rmfsft_method=self.rmfsft_method,
                     sample_rmf=self.sample_rmf,
                     sample_arf=self.sample_arf,
                     nh_file=self.nh_file,
                     Nbkggrp=self.Nbkggrp,
                     ene_trc=self.ene_trc,
-                    rm_ene_dsp=self.rm_ene_dsp,
                     nthreads=self.nthreads,
                     prefix=prefix_i,
-                    # o_pi_name=o_pi_name_i,
-                    # o_bkgpi_name=o_bkgpi_name_i,
-                    # o_arf_name=o_arf_name_i,
-                    # o_rmf_name=o_rmf_name_i,
-                    # o_fene_name=o_fene_name_i,
                 )
                 self.XstackRunner_lst.append(XstackRunner_i)
 
