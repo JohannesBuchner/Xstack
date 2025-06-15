@@ -214,6 +214,12 @@ The output will be:
 - View [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) for a quick walk-through and more examples!
 
 
+## :bow_and_arrow: What to do with your stacked spectra
+- Sanity check: from which energy should you use for stacked spectrum analysis (more details to be added)
+- Simple visualization (more details to be added)
+- XSPEC fitting (more details to be added)
+
+
 ## :warning: Limitations, and contributions are welcome!
 
 - **Preserving only spectral **shape**; **normalization** information is lost**
