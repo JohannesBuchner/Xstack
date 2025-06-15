@@ -8,7 +8,7 @@ setup(
     author_email='JohnnyCsj666@gmail.com',
     url='https://github.com/AstroChensj/Xstack.git',
     #packages=find_packages(),
-    packages=['Xstack','scripts'],
+    packages=['Xstack','Xstack_scripts'],
     install_requires=[
         'astropy',
         'numpy',
@@ -24,7 +24,7 @@ setup(
     #scripts=['scripts/runXstack.py'],
     entry_points={
         'console_scripts': [
-            'runXstack = scripts.Xstack_autoscript:main'
+            'runXstack = Xstack_scripts.Xstack_autoscript:main'
         ]
     }
 )
