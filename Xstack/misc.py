@@ -20,14 +20,9 @@ from Xstack.shift_pi import get_bkgscal,get_expo
 #===================================================
 ##################### grppi ########################
 #===================================================
-def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=None,bkg_name=None,min_net=0):
-    '''
+def make_grpflg(src_name,grp_name=None,method="EDGE",rmf_file="",eelo=None,eehi=None,bkg_name=None,min_net=0):
+    """
     Add `GROUPING` column to the source PI file.
-    
-    Available Methods
-    -----------------
-    * `EDGE`: Group by fixed energy bin edges.
-    * `MIN_NET` : Group by minimum net counts in each group.
     
     Parameters
     ----------
@@ -54,19 +49,24 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
     -------
     grpflg : numpy.ndarray
         `GROUPING` column written in `grp_name`.
-    '''
-    if method == 'EDGE':
+
+    Available Methods
+    -----------------
+    * `EDGE`: Group by fixed energy bin edges.
+    * `MIN_NET` : Group by minimum net counts in each group.
+    """
+    if method == "EDGE":
         if (eelo is None) or (eehi is None):
-            raise Exception('Please specify `eelo` and `eehi` in method `EDGE`!')
+            raise Exception("Please specify `eelo` and `eehi` in method `EDGE`!")
         # find channel energy in EBOUNDS extension of RMF file
         with fits.open(src_name) as hdu:
-            data = hdu['SPECTRUM'].data
-            head = hdu['SPECTRUM'].header
-            chan = data['CHANNEL']
+            data = hdu["SPECTRUM"].data
+            head = hdu["SPECTRUM"].header
+            chan = data["CHANNEL"]
             try:
-                src_rmf = head['RESPFILE']
+                src_rmf = head["RESPFILE"]
             except Exception as e:
-                src_rmf = ''
+                src_rmf = ""
         
         # the RMF file must either be specified as `rmf_file`, or specified in the header of `src_name`
         if os.path.exists(rmf_file):
@@ -74,16 +74,16 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
         elif os.path.exists(src_rmf):
             rmf_file = src_rmf
         else:
-            raise Exception('Either the RMF file is not specified as `rmf_file`, or the one in %s does not exist!'%src_name)
+            raise Exception("Either the RMF file is not specified as `rmf_file`, or the one in %s does not exist!"%src_name)
         
         with fits.open(rmf_file) as hdu:
-            ebo = hdu['EBOUNDS'].data
-        ene_lo = ebo['E_MIN']
-        ene_hi = ebo['E_MAX']
+            ebo = hdu["EBOUNDS"].data
+        ene_lo = ebo["E_MIN"]
+        ene_hi = ebo["E_MAX"]
         ene_ce = (ene_lo + ene_hi) / 2
         
-        assert len(chan)==len(ene_ce), 'CHANNEL and RMF EBOUNDS ENERGY does not match!'
-        assert np.all(eelo<eehi)==True, '`eelo` has to be smaller than `eehi`!'
+        assert len(chan)==len(ene_ce), "CHANNEL and RMF EBOUNDS ENERGY does not match!"
+        assert np.all(eelo<eehi)==True, "`eelo` has to be smaller than `eehi`!"
         
         # make grouping flag
         grpflg = np.ones(len(ene_ce))
@@ -104,28 +104,28 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
         # create output file
         if grp_name is not None:
             shutil.copy(src_name,grp_name)
-            with fits.open(grp_name,mode='update') as hdu:
+            with fits.open(grp_name,mode="update") as hdu:
                 SPECTRUM = hdu[1]
-                if 'GROUPING' in SPECTRUM.columns.names:
-                    SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
-                GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
+                if "GROUPING" in SPECTRUM.columns.names:
+                    SPECTRUM.columns.del_col("GROUPING")    # remove "GROUPING" column if it exists beforehand
+                GROUPING = fits.Column(name="GROUPING", format="I", array=grpflg)
                 SPECTRUM.data = fits.BinTableHDU.from_columns(SPECTRUM.columns + GROUPING).data
         
         return grpflg
     
     elif method == "MIN_NET":
         with fits.open(src_name) as hdu:
-            data = hdu['SPECTRUM'].data
-            src_chan = data['CHANNEL']
-            src_coun = data['COUNTS']
-            head = hdu['SPECTRUM'].header
+            data = hdu["SPECTRUM"].data
+            src_chan = data["CHANNEL"]
+            src_coun = data["COUNTS"]
+            head = hdu["SPECTRUM"].header
         if bkg_name is None:
-            bkg_name = head['BACKFILE']
-        assert os.path.exists(bkg_name), 'Background file does not exist!'
+            bkg_name = head["BACKFILE"]
+        assert os.path.exists(bkg_name), "Background file does not exist!"
         with fits.open(bkg_name) as hdu:
-            data = hdu['SPECTRUM'].data
-            bkg_chan = data['CHANNEL']
-            bkg_coun = data['COUNTS']
+            data = hdu["SPECTRUM"].data
+            bkg_chan = data["CHANNEL"]
+            bkg_coun = data["COUNTS"]
         assert len(src_chan) == len(bkg_chan), f"src channel ({len(src_chan)}) and bkg channel ({len(bkg_chan)}) do not match!"
         bkgscal = get_bkgscal(src_name,bkg_name)
 
@@ -143,21 +143,21 @@ def make_grpflg(src_name,grp_name=None,method='EDGE',rmf_file='',eelo=None,eehi=
         # create output file
         if grp_name is not None:
             shutil.copy(src_name,grp_name)
-            with fits.open(grp_name,mode='update') as hdu:
+            with fits.open(grp_name,mode="update") as hdu:
                 SPECTRUM = hdu[1]
-                if 'GROUPING' in SPECTRUM.columns.names:
-                    SPECTRUM.columns.del_col('GROUPING')    # remove 'GROUPING' column if it exists beforehand
-                GROUPING = fits.Column(name='GROUPING', format='I', array=grpflg)
+                if "GROUPING" in SPECTRUM.columns.names:
+                    SPECTRUM.columns.del_col("GROUPING")    # remove "GROUPING" column if it exists beforehand
+                GROUPING = fits.Column(name="GROUPING", format="I", array=grpflg)
                 SPECTRUM.data = fits.BinTableHDU.from_columns(SPECTRUM.columns + GROUPING).data
 
         return grpflg
     
     else:
-        raise Exception('Available method for grppi: EDGE, MIN_NET!')
+        raise Exception("Available method for grppi: EDGE, MIN_NET!")
 
 
 def rebin_pi(ene_lo,ene_hi,coun,coun_err,grpflg):
-    '''
+    """
     Rebin PI file according to `grpflg`.
     
     Parameters
@@ -183,9 +183,9 @@ def rebin_pi(ene_lo,ene_hi,coun,coun_err,grpflg):
         Photon counts in each grouped energy bin.
     grpcoun_err : numpy.ndarray
         Photon counts error in each grouped energy bin.
-    '''
+    """
     ene_ce = (ene_lo + ene_hi) / 2
-    assert len(grpflg) == len(ene_ce), 'grpflag shape '+str(grpflg.shape)+' does not match ene shape '+str(ene_ce.shape)+' !'
+    assert len(grpflg) == len(ene_ce), "grpflag shape "+str(grpflg.shape)+" does not match ene shape "+str(ene_ce.shape)+" !"
     
     grpene_lo = []
     grpene_hi = []
@@ -216,7 +216,7 @@ def rebin_pi(ene_lo,ene_hi,coun,coun_err,grpflg):
             tmpcoun.append(coun[i])
             tmpcoun_err.append(coun_err[i])
         else: 
-            raise Exception('`grpflg` not in standard format (`1` for start of group, `-1` for continuing of group)')
+            raise Exception("`grpflg` not in standard format (`1` for start of group, `-1` for continuing of group)")
     
     # for the last energy bin
     grpene_lo.append(tmpene_lo[0])
@@ -233,7 +233,7 @@ def rebin_pi(ene_lo,ene_hi,coun,coun_err,grpflg):
 
 
 def rebin_arf(arfene_lo,arfene_hi,specresp,ene_lo,ene_hi,coun,grpflg,prob=None):
-    '''
+    """
     Anchor the ARF specresp (input model energy) on the output channel energy grid.
 
     Parameters
@@ -254,7 +254,7 @@ def rebin_arf(arfene_lo,arfene_hi,specresp,ene_lo,ene_hi,coun,grpflg,prob=None):
         Channel energy grouping flag, should be passed from `rebin_pi`.
     prob : numpy.ndarray, optional
         The RMF 2D probability matrix. If given, the ARF used for rebinning will be RMF-weighted. Defaults to None.
-    '''
+    """
     ene_ce = (ene_lo + ene_hi) / 2
     specresp_ali = align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob)
 
@@ -287,7 +287,7 @@ def rebin_arf(arfene_lo,arfene_hi,specresp,ene_lo,ene_hi,coun,grpflg,prob=None):
             tmpspecresp.append(specresp_ali[i])
             tmpwt.append(coun[i]/specresp_ali[i] if coun[i]>0 else 0)   # caution! may be refined later
         else: 
-            raise Exception('`grpflg` not in standard format (`1` for start of group, `-1` for continuing of group)')
+            raise Exception("`grpflg` not in standard format (`1` for start of group, `-1` for continuing of group)")
         
     # for the last energy bin
     grpene_lo.append(tmpene_lo[0])
@@ -318,7 +318,7 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
     rmf_name : str, optional
         RMF file name. If not specified, will look for it in the header of src_name.
     grp_name : str, optional
-        Grouping file name. Only uses its 'GROUPING' column.
+        Grouping file name. Only uses its "GROUPING" column.
     normalize_at : int or float, optional
         Output spectrum normalized at some energy (keV). Defaults to None.
     outname : str, optional
@@ -342,49 +342,49 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
 
     """
     with fits.open(src_name) as hdu:
-        data = hdu['SPECTRUM'].data
-        src_chan = data['CHANNEL']
-        src_coun = data['COUNTS']
+        data = hdu["SPECTRUM"].data
+        src_chan = data["CHANNEL"]
+        src_coun = data["COUNTS"]
         src_counerr = np.sqrt(src_coun)
-        head = hdu['SPECTRUM'].data
+        head = hdu["SPECTRUM"].data
     expo = get_expo(src_name)
     
     if bkg_name is None:
-        bkg_name = head['BACKFILE']
-    assert os.path.exists(bkg_name), 'Background file does not exist!'
+        bkg_name = head["BACKFILE"]
+    assert os.path.exists(bkg_name), "Background file does not exist!"
     with fits.open(bkg_name) as hdu:
-        data = hdu['SPECTRUM'].data
-        bkg_chan = data['CHANNEL']
-        bkg_coun = data['COUNTS']
+        data = hdu["SPECTRUM"].data
+        bkg_chan = data["CHANNEL"]
+        bkg_coun = data["COUNTS"]
         bkg_counerr = np.sqrt(bkg_coun)
     bkgscal = get_bkgscal(src_name,bkg_name)
 
     if arf_name is None:
-        arf_name = head['ANCRFILE']
-    assert os.path.exists(arf_name), 'ARF file does not exist!'
+        arf_name = head["ANCRFILE"]
+    assert os.path.exists(arf_name), "ARF file does not exist!"
     with fits.open(arf_name) as hdu:
-        arf = hdu['SPECRESP'].data
-    arfene_lo = arf['ENERG_LO']
-    arfene_hi = arf['ENERG_HI']
+        arf = hdu["SPECRESP"].data
+    arfene_lo = arf["ENERG_LO"]
+    arfene_hi = arf["ENERG_HI"]
     arfene_ce = (arfene_hi + arfene_lo)/2
     arfene_wd = arfene_hi - arfene_lo
-    specresp = arf['SPECRESP']
+    specresp = arf["SPECRESP"]
 
     if rmf_name is None:
-        rmf_name = head['RESPFILE']
-    assert os.path.exists(rmf_name), 'RMF file does not exist!'
+        rmf_name = head["RESPFILE"]
+    assert os.path.exists(rmf_name), "RMF file does not exist!"
     with fits.open(rmf_name) as hdu:
-        mat = hdu['MATRIX'].data
-        ebo = hdu['EBOUNDS'].data
-    ene_lo = ebo['E_MIN']
-    ene_hi = ebo['E_MAX']
+        mat = hdu["MATRIX"].data
+        ebo = hdu["EBOUNDS"].data
+    ene_lo = ebo["E_MIN"]
+    ene_hi = ebo["E_MAX"]
     ene_ce = (ene_lo + ene_hi)/2
     ene_wd = ene_hi - ene_lo
 
     if grp_name is not None:
         with fits.open(grp_name) as hdu:
-            data = hdu['SPECTRUM'].data
-        grpflg = data['GROUPING']
+            data = hdu["SPECTRUM"].data
+        grpflg = data["GROUPING"]
         assert len(grpflg) == len(src_chan), f"Channel number ({len(src_chan)}) and Grouping flag length ({len(grpflg)}) do not match!"
     else:
         grpflg = np.ones(len(grpene_ce))
@@ -411,12 +411,12 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
         hdu_lst.append(hdu_primary)
 
         arrays = [grpene_lo,grpene_hi,ratio,ratioerr]
-        colnames = ['GRPE_MIN','GRPE_MAX','RATIO','RATIO_ERR']
-        formats = ['D','D','D','D']
-        units = ['keV','keV','cts/s/cm^2/keV','cts/s/cm^2/keV']
+        colnames = ["GRPE_MIN","GRPE_MAX","RATIO","RATIO_ERR"]
+        formats = ["D","D","D","D"]
+        units = ["keV","keV","cts/s/cm^2/keV","cts/s/cm^2/keV"]
 
         columns = [fits.Column(name=colname_,array=array_,format=format_,unit=unit_) for colname_,array_,format_,unit_ in zip(colnames,arrays,formats,units)]
-        hdu_data = fits.BinTableHDU.from_columns(columns,name='DATAARF')
+        hdu_data = fits.BinTableHDU.from_columns(columns,name="DATAARF")
         hdu_lst.append(hdu_data)
 
         hdu_lst.writeto(outname,overwrite=True)
@@ -433,17 +433,17 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
 ################# first energy #####################
 #===================================================
 def fene_fits(srcid_lst,arffene_lst,fene_lst,fits_name):
-    '''
-    Creating a fits storing the first energy of each source's PI spectrum and ARF specresp.
+    """
+    Creating a fits storing the first energy of each source"s PI spectrum and ARF specresp.
 
     Parameters
     ----------
     srcid_lst : list or numpy.ndarray
         The source ID list.
     arffene_lst : list or numpy.ndarray
-        The first energy of each sources's ARF specresp.
+        The first energy of each sources"s ARF specresp.
     fene_lst : list or numpy.ndarray
-        The first energy of each source's PI spectrum.
+        The first energy of each source"s PI spectrum.
     fits_name : str
         The output fits name.
 
@@ -451,20 +451,20 @@ def fene_fits(srcid_lst,arffene_lst,fene_lst,fits_name):
     -------
     None.
 
-    '''
+    """
     if fits_name is not None:
         hdu_lst = fits.HDUList()
         
         primary_hdu = fits.PrimaryHDU()
         hdu_lst.append(primary_hdu)
         
-        cols = [fits.Column(name='srcid',format='I',array=srcid_lst),
-                fits.Column(name='arffene',format='D',array=arffene_lst,unit='keV'),
-                fits.Column(name='fene',format='D',array=fene_lst,unit='keV')]
-        hdu_fene = fits.BinTableHDU.from_columns(cols, name='FENERGY')
+        cols = [fits.Column(name="srcid",format="I",array=srcid_lst),
+                fits.Column(name="arffene",format="D",array=arffene_lst,unit="keV"),
+                fits.Column(name="fene",format="D",array=fene_lst,unit="keV")]
+        hdu_fene = fits.BinTableHDU.from_columns(cols, name="FENERGY")
         hdu_lst.append(hdu_fene)
 
-        hdu_lst.writeto('%s'%(fits_name), overwrite=True)
+        hdu_lst.writeto("%s"%(fits_name), overwrite=True)
     return 
 
 
@@ -472,7 +472,7 @@ def fene_fits(srcid_lst,arffene_lst,fene_lst,fits_name):
 ################# UV correction ####################
 #===================================================
 def dered(flux,RA,DEC,R=5.28):
-    '''
+    """
     Perform Galactic extinction correction. SFDMAP generated from https://github.com/kbarbary/sfdmap.
     To use this function, please make sure `SFD_DIR` has been written in ~/.bashrc as an environmental variable!
     See the above link for more details on `SFD_DIR`.
@@ -492,7 +492,7 @@ def dered(flux,RA,DEC,R=5.28):
     -------
     flux_der : float
         The dereddened flux.
-    '''
+    """
     # Assuming R(UVW1)=5.28 (Page+2013)
     m = sfdmap.SFDMap() # Assuming that SFD_DIR has been written in ~/.bashrc as an environmental variable!
     A = R * m.ebv(RA,DEC)
@@ -500,7 +500,7 @@ def dered(flux,RA,DEC,R=5.28):
     return flux_der
 
 def kcorr(flux,z,alpha=0.65):
-    '''
+    """
     K-correction involves spectral shift and distance correction. This function only does the spectral shifting.
     
     Parameters
@@ -517,7 +517,7 @@ def kcorr(flux,z,alpha=0.65):
     flux_int : float
         The expected flux (erg/cm^2/s/AA) recorded by some filter, if observed in rest-frame. 
         Note that the distance effect (F_nu ~ L_nu / 4/pi/d_L^2) has to be considered separately.
-    '''
+    """
     # UV SED: F_nu~nu^-alpha
     # Assume alpha=0.65 (Natali+1998)
     K = 2.5*(alpha-1)*np.log10(1+z)
@@ -525,7 +525,7 @@ def kcorr(flux,z,alpha=0.65):
     return flux_int
 
 def flux_sft(flux,lambda_fr=2315.7,lambda_to=2500,alpha=0.65):
-    '''
+    """
     Calculate the expected flux (erg/cm^2/s/Hz) at `lambda_to`, if we already know the flux at 
     `lambda_fr`.
     
@@ -538,14 +538,14 @@ def flux_sft(flux,lambda_fr=2315.7,lambda_to=2500,alpha=0.65):
         lambda (to).
     alpha : float
         Spectral slope (assuming F_nu ~ nu^{-alpha}, where F_nu in units of erg/cm^2/s/Hz).
-    '''
+    """
     # UV SED: F_nu~nu^-alpha
     # Assume alpha=0.65 (Natali+1998)
     flux_sft = flux * (lambda_to / lambda_fr)**alpha
     return flux_sft
 
 def flux2lum(flux,z):
-    '''
+    """
     Convert flux to luminosity.
     
     Parameters
@@ -559,7 +559,7 @@ def flux2lum(flux,z):
     -------
     lum : float
         Monochromatic luminosity (erg/s/Hz).
-    '''
+    """
     luminosity_distance = Planck18.luminosity_distance(z)
     # Calculate the luminosity using the formula: Luminosity = 4 * pi * (D_L^2) * F_observed / (1 + z)
     # Where Luminosity is in erg/s, D_L is the luminosity distance, F_observed is the observed flux, and z is the redshift.
@@ -568,7 +568,7 @@ def flux2lum(flux,z):
     return lum
 
 def restlum(flux,z,alpha,lambda_fr=2315.7,lambda_to=2500,R=None,RA=0,DEC=0):
-    '''
+    """
     A synthesized function converting obs-frame monochromatic flux (erg/cm^2/s/Hz) to rest-frame luminosity (erg/s).
     
     Parameters
@@ -588,7 +588,7 @@ def restlum(flux,z,alpha,lambda_fr=2315.7,lambda_to=2500,R=None,RA=0,DEC=0):
     -------
     lum : float
         Rest-frame luminosity, nu*F_nu or lambda*F_lambda (erg/s)
-    '''
+    """
     # deredden (optional)
     if R is not None:
         flux = dered(flux,RA,DEC,R) # erg/cm^2/s/Hz
@@ -606,8 +606,8 @@ def restlum(flux,z,alpha,lambda_fr=2315.7,lambda_to=2500,R=None,RA=0,DEC=0):
 ################# GalNH (X-ray) ####################
 #===================================================
 def get_nh(RA,DEC):
-    '''
-    Get the Galactic NH from NASA's HEASARC tool `NH` (https://heasarc.gsfc.nasa.gov/Tools/w3nh_help.html).
+    """
+    Get the Galactic NH from NASA"s HEASARC tool `NH` (https://heasarc.gsfc.nasa.gov/Tools/w3nh_help.html).
     Please ensure the HEASOFT env has been set up.
     
     Parameters
@@ -619,31 +619,31 @@ def get_nh(RA,DEC):
     -------
     nh_val : float
         nh values in units of 1 cm^-2
-    '''
+    """
     # write sh
-    log_file = 'nh.log'
-    os.system('rm -rf %s'%log_file)
-    shell_file = open('run_nh.sh','w',newline='')
-    shell_file.writelines('(\n')
-    shell_file.writelines('echo 2000\n') # Equinox (d/f 2000)
-    shell_file.writelines('echo %f\n'%RA) # RA in hh mm ss.s or degrees
-    shell_file.writelines('echo %f\n'%DEC) # DEC in hh mm ss.s or degrees
-    shell_file.writelines(') | nh\n')
+    log_file = "nh.log"
+    os.system("rm -rf %s"%log_file)
+    shell_file = open("run_nh.sh","w",newline="")
+    shell_file.writelines("(\n")
+    shell_file.writelines("echo 2000\n") # Equinox (d/f 2000)
+    shell_file.writelines("echo %f\n"%RA) # RA in hh mm ss.s or degrees
+    shell_file.writelines("echo %f\n"%DEC) # DEC in hh mm ss.s or degrees
+    shell_file.writelines(") | nh\n")
     shell_file.close()
     # run sh
     os.system("bash run_nh.sh > %s 2>&1"%log_file)
     # read sh
-    with open(log_file,'r') as file:
+    with open(log_file,"r") as file:
         text = file.read()
-    # Use regular expression to find the line with 'Weighted' and capture the value
-    match1 = re.search(r'Weighted average nH \(cm\*\*-2\)\s+([0-9.E+-]+)', text)
-    match2 = re.search(r'h1_nh_HI4PI.fits >> nH \(cm\*\*-2\)\s+([0-9.E+-]+)', text) # in case when the given RA/DEC falls outside the allowed range
+    # Use regular expression to find the line with "Weighted" and capture the value
+    match1 = re.search(r"Weighted average nH \(cm\*\*-2\)\s+([0-9.E+-]+)", text)
+    match2 = re.search(r"h1_nh_HI4PI.fits >> nH \(cm\*\*-2\)\s+([0-9.E+-]+)", text) # in case when the given RA/DEC falls outside the allowed range
     if match1:
         nh_val = match1.group(1)
     elif match2:
         nh_val = match2.group(1)
     else:
-        raise Exception('Invalid RA (%.4f), DEC(%.4f) for nh!'%(RA,DEC))
+        raise Exception("Invalid RA (%.4f), DEC(%.4f) for nh!"%(RA,DEC))
     nh_val = float(nh_val)
 
     return nh_val
@@ -652,8 +652,8 @@ def get_nh(RA,DEC):
 #===================================================
 ############### RMF Visualization ##################
 #===================================================
-def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,cmap='gray_r',log_scale=False,v_min_lbound=1e-6,x_label='Output photon energy (keV)',y_label='Input model energy (keV)'):
-    '''
+def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,cmap="gray_r",log_scale=False,v_min_lbound=1e-6,x_label="Output photon energy (keV)",y_label="Input model energy (keV)"):
+    """
     A convenient tool for visualizing 2D RMF matrix. 2D interpolation assumed. 
     You can either call it inside your code to visualize RMF alone side other plots you would like to plot; 
     or you can use this function to produce standalone PNG. 
@@ -673,37 +673,37 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
     log_scale : bool, optional
         If True, use log-scale for cmap.
     v_min_lbound : float, optional
-        The lower bound of v_min for log-cmap. This means that ``LogNorm(vmin=np.max(np.min(prob_new),v_min_lbound),vmax=np.max(prob_new))''.
+        The lower bound of v_min for log-cmap. This means that ``LogNorm(vmin=np.max(np.min(prob_new),v_min_lbound),vmax=np.max(prob_new))"".
         Defaults to 1e-6.
     x_label : str, optional
-        X label. Defaults to ``Output photon energy (keV)''.
+        X label. Defaults to ``Output photon energy (keV)"".
     y_label : str, optional
-        Y label. Defaults to ``Input model energy (keV)''.
+        Y label. Defaults to ``Input model energy (keV)"".
 
     Returns
     -------
     ax : matplotlib.axes.Axes
         The current axes.
-    '''
+    """
     with fits.open(rmf_file) as hdu:
-        mat = hdu['MATRIX'].data # `MATRIX` extension, determine the input model (=arf) energy bin (ENERG_LO,ENERG_HI)
-        ebo = hdu['EBOUNDS'].data # `EBOUNDS` extension, determine the output (photon, or channel) energy bin (E_MIN,E_MAX)
+        mat = hdu["MATRIX"].data # `MATRIX` extension, determine the input model (=arf) energy bin (ENERG_LO,ENERG_HI)
+        ebo = hdu["EBOUNDS"].data # `EBOUNDS` extension, determine the output (photon, or channel) energy bin (E_MIN,E_MAX)
     
-    iene_lo = mat['ENERG_LO'] # input energy lower edge
-    iene_hi = mat['ENERG_HI'] # input energy upper edge
+    iene_lo = mat["ENERG_LO"] # input energy lower edge
+    iene_hi = mat["ENERG_HI"] # input energy upper edge
     iene_ce = (iene_lo + iene_hi) / 2
     
-    ene_lo = ebo['E_MIN'] # output energy lower edge
-    ene_hi = ebo['E_MAX'] # output energy upper edge
+    ene_lo = ebo["E_MIN"] # output energy lower edge
+    ene_hi = ebo["E_MAX"] # output energy upper edge
     ene_ce = (ene_lo + ene_hi) / 2
     
     grid = np.meshgrid(ene_ce,iene_ce) # ( (len(iene_ce),len(ene_ce)), (len(iene_ce),len(ene_ce)) )
     prob = np.zeros(grid[0].shape)
     
-    n_grp = mat['N_GRP']
-    f_chan = mat['F_CHAN']
-    n_chan = mat['N_CHAN']
-    mat = mat['MATRIX']
+    n_grp = mat["N_GRP"]
+    f_chan = mat["F_CHAN"]
+    n_chan = mat["N_CHAN"]
+    mat = mat["MATRIX"]
     
     f_chan_0 = int(f_chan.min()) # the zero point of channel index
     for i in range(len(iene_ce)):
@@ -750,11 +750,11 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
         im = ax.imshow(prob_new[::-1],
                        extent=(ene_ce_new[0],ene_ce_new[-1],iene_ce_new[0],iene_ce_new[-1]),
                        norm=LogNorm(vmin=max(np.min(prob_new),v_min_lbound),vmax=np.max(prob_new)),
-                       aspect='auto',cmap=cmap,)
+                       aspect="auto",cmap=cmap,)
     else:
         im = ax.imshow(prob_new[::-1],
                        extent=(ene_ce_new[0],ene_ce_new[-1],iene_ce_new[0],iene_ce_new[-1]),
-                       aspect='auto',cmap=cmap,)
+                       aspect="auto",cmap=cmap,)
     
     ax.set_xlabel(x_label,fontsize=15)
     ax.tick_params("x",which="major",
@@ -773,20 +773,20 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
         spine.set_linewidth(2.5)
 
     # inset colorbar
-    # axins1 = inset_axes(ax,width='40%',height='4%',loc='lower right')
-    axins1 = inset_axes(ax,width='100%',height='50%',bbox_to_anchor=(0.5,0.15,0.5,0.1),bbox_transform=ax.transAxes)
+    # axins1 = inset_axes(ax,width="40%",height="4%",loc="lower right")
+    axins1 = inset_axes(ax,width="100%",height="50%",bbox_to_anchor=(0.5,0.15,0.5,0.1),bbox_transform=ax.transAxes)
     if log_scale == True:
         ticks = np.logspace(np.log10(max(v_min_lbound,np.min(prob_new))),np.log10(np.max(prob_new)),3)
     else:
         ticks = np.linspace(max(v_min_lbound,np.min(prob_new)),np.max(prob_new),3)
-    cbar = fig.colorbar(im,cax=axins1,orientation='horizontal',ticks=ticks)
-    cbar.ax.set_xticklabels(['{:.0e}'.format(c) for c in ticks])
-    axins1.xaxis.set_ticks_position('top')
+    cbar = fig.colorbar(im,cax=axins1,orientation="horizontal",ticks=ticks)
+    cbar.ax.set_xticklabels(["{:.0e}".format(c) for c in ticks])
+    axins1.xaxis.set_ticks_position("top")
     axins1.tick_params(labelsize=12,pad=2,width=2,size=14)
-    cbar.set_label('Probability',size=14)
+    cbar.set_label("Probability",size=14)
 
     if fig_name is not None: 
-        plt.savefig('%s'%fig_name,bbox_inches='tight',transparent=False,dpi=300)
+        plt.savefig("%s"%fig_name,bbox_inches="tight",transparent=False,dpi=300)
 
     return ax
 
@@ -795,7 +795,7 @@ def view_rmf(rmf_file,n_grid_i=1000,n_grid=1000,fig=None,ax=None,fig_name=None,c
 ################ Concatenating RMFs ################
 #===================================================
 def concat_rmf(rmffile1,rmffile2,Es,Ee,Ngrid,out_name):
-    '''
+    """
     Concatenate two RMFs into a single large RMF.
     
     Parameters
@@ -817,37 +817,37 @@ def concat_rmf(rmffile1,rmffile2,Es,Ee,Ngrid,out_name):
     -------
     prob : numpy.ndarray
         The output 2D RMF matrix.
-    '''
+    """
     with fits.open(rmffile1) as hdu:
-        mat1 = hdu['MATRIX'].data
-        ebo1 = hdu['EBOUNDS'].data
-        expo = hdu['MATRIX'].header['EXPOSURE']
-    arfene1_lo = mat1['ENERG_LO']
-    arfene1_hi = mat1['ENERG_HI']
-    ene1_lo = ebo1['E_MIN']
-    ene1_hi = ebo1['E_MAX']
-    n_grp1 = mat1['N_GRP']
-    f_chan1 = mat1['F_CHAN']
-    n_chan1 = mat1['N_CHAN']
-    matrix1 = np.array(mat1['MATRIX'])
+        mat1 = hdu["MATRIX"].data
+        ebo1 = hdu["EBOUNDS"].data
+        expo = hdu["MATRIX"].header["EXPOSURE"]
+    arfene1_lo = mat1["ENERG_LO"]
+    arfene1_hi = mat1["ENERG_HI"]
+    ene1_lo = ebo1["E_MIN"]
+    ene1_hi = ebo1["E_MAX"]
+    n_grp1 = mat1["N_GRP"]
+    f_chan1 = mat1["F_CHAN"]
+    n_chan1 = mat1["N_CHAN"]
+    matrix1 = np.array(mat1["MATRIX"])
     f_chan1_0 = int(np.min([np.min(f_chan1[_]) for _ in range(len(f_chan1))])) # the zero point of channel index
 
     with fits.open(rmffile2) as hdu:
-        mat2 = hdu['MATRIX'].data
-        ebo2 = hdu['EBOUNDS'].data
-    arfene2_lo = mat2['ENERG_LO']
-    arfene2_hi = mat2['ENERG_HI']
-    ene2_lo = ebo2['E_MIN']
-    ene2_hi = ebo2['E_MAX']
-    n_grp2 = mat2['N_GRP']
-    f_chan2 = mat2['F_CHAN']
-    n_chan2 = mat2['N_CHAN']
-    matrix2 = np.array(mat2['MATRIX'])
+        mat2 = hdu["MATRIX"].data
+        ebo2 = hdu["EBOUNDS"].data
+    arfene2_lo = mat2["ENERG_LO"]
+    arfene2_hi = mat2["ENERG_HI"]
+    ene2_lo = ebo2["E_MIN"]
+    ene2_hi = ebo2["E_MAX"]
+    n_grp2 = mat2["N_GRP"]
+    f_chan2 = mat2["F_CHAN"]
+    n_chan2 = mat2["N_CHAN"]
+    matrix2 = np.array(mat2["MATRIX"])
     f_chan2_0 = int(np.min([np.min(f_chan2[_]) for _ in range(len(f_chan2))])) # the zero point of channel index
 
-    assert np.max(arfene1_hi) <= np.min(arfene2_lo), 'Highest model energy of `rmffile1` (detected: %f) should be no greater than lowest model energy (detected: %f) of `rmffile2` !'%(np.max(arfene1_hi),np.min(arfene2_lo))
-    assert np.max(arfene1_hi) <= np.min(arfene2_lo), 'Highest model energy of `rmffile1` (detected: %f) should be no greater than lowest model energy (detected: %f) of `rmffile2` !'%(np.max(arfene1_hi),np.min(arfene2_lo))
-    assert np.max(ene1_hi) <= np.min(ene2_lo), 'Highest channel energy of `rmffile1` (detected: %f) should be no greater than lowest channel energy (detected: %f) of `rmffile2` !'%(np.max(ene1_hi),np.min(ene2_lo))
+    assert np.max(arfene1_hi) <= np.min(arfene2_lo), "Highest model energy of `rmffile1` (detected: %f) should be no greater than lowest model energy (detected: %f) of `rmffile2` !"%(np.max(arfene1_hi),np.min(arfene2_lo))
+    assert np.max(arfene1_hi) <= np.min(arfene2_lo), "Highest model energy of `rmffile1` (detected: %f) should be no greater than lowest model energy (detected: %f) of `rmffile2` !"%(np.max(arfene1_hi),np.min(arfene2_lo))
+    assert np.max(ene1_hi) <= np.min(ene2_lo), "Highest channel energy of `rmffile1` (detected: %f) should be no greater than lowest channel energy (detected: %f) of `rmffile2` !"%(np.max(ene1_hi),np.min(ene2_lo))
 
     arfenes1 = np.logspace(np.log10(Es),np.log10(np.min(arfene1_lo)),Ngrid) # model energy grid from Es to 1st min model energy of rmffile1
     arfene12 = np.logspace(np.log10(np.max(arfene1_hi)),np.log10(np.min(arfene2_lo)),Ngrid) # model energy grid from last max model energy of rmffile1 to 1st min model energy of rmffile2
@@ -926,46 +926,46 @@ def concat_rmf(rmffile1,rmffile2,Es,Ee,Ngrid,out_name):
         matrix.append(prob_i[:last_nonzero_idx+1])
     n_grp = np.array(n_grp)
         
-    cols = [fits.Column(name='ENERG_LO', format='D', array=arfene_lo),
-            fits.Column(name='ENERG_HI', format='D', array=arfene_hi),
-            fits.Column(name='N_GRP', format='J', array=n_grp),
-            fits.Column(name='F_CHAN', format='PJ()', array=f_chan),
-            fits.Column(name='N_CHAN', format='PJ()', array=n_chan),
-            fits.Column(name='MATRIX', format='PD()', array=matrix)]
-    hdu_matrix = fits.BinTableHDU.from_columns(cols, name='MATRIX')
+    cols = [fits.Column(name="ENERG_LO", format="D", array=arfene_lo),
+            fits.Column(name="ENERG_HI", format="D", array=arfene_hi),
+            fits.Column(name="N_GRP", format="J", array=n_grp),
+            fits.Column(name="F_CHAN", format="PJ()", array=f_chan),
+            fits.Column(name="N_CHAN", format="PJ()", array=n_chan),
+            fits.Column(name="MATRIX", format="PD()", array=matrix)]
+    hdu_matrix = fits.BinTableHDU.from_columns(cols, name="MATRIX")
     # RMF header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, CAL/GEN/92-002: "The Calibration Requirements for Spectral Analysis")
-    hdu_matrix.header['TELESCOP'] = 'CONCAT'
-    hdu_matrix.header['INSTRUME'] = 'CONCAT'
-    hdu_matrix.header['CHANTYPE'] = 'PI'
-    hdu_matrix.header['DETCHANS'] = prob.shape[1]
-    hdu_matrix.header['HDUCLASS'] = 'OGIP'
-    hdu_matrix.header['HDUCLAS1'] = 'RESPONSE'
-    hdu_matrix.header['HDUCLAS2'] = 'RSP_MATRIX'
-    hdu_matrix.header['HDUVERS'] = '1.3.0'
-    hdu_matrix.header['TLMIN4'] = 1 # the first channel in the response
-    hdu_matrix.header['EXPOSURE'] = expo
-    hdu_matrix.header['ANCRFILE'] = 'NONE'
-    hdu_matrix.header['CREATOR'] = 'XSTACK'
+    hdu_matrix.header["TELESCOP"] = "CONCAT"
+    hdu_matrix.header["INSTRUME"] = "CONCAT"
+    hdu_matrix.header["CHANTYPE"] = "PI"
+    hdu_matrix.header["DETCHANS"] = prob.shape[1]
+    hdu_matrix.header["HDUCLASS"] = "OGIP"
+    hdu_matrix.header["HDUCLAS1"] = "RESPONSE"
+    hdu_matrix.header["HDUCLAS2"] = "RSP_MATRIX"
+    hdu_matrix.header["HDUVERS"] = "1.3.0"
+    hdu_matrix.header["TLMIN4"] = 1 # the first channel in the response
+    hdu_matrix.header["EXPOSURE"] = expo
+    hdu_matrix.header["ANCRFILE"] = "NONE"
+    hdu_matrix.header["CREATOR"] = "XSTACK"
     hdu_lst.append(hdu_matrix)
 
     # extension 2: EBOUNDS
     chan = np.arange(1,len(ene_lo)+1)
-    cols = [fits.Column(name='CHANNEL', format='J', array=chan),
-            fits.Column(name='E_MIN', format='D', array=ene_lo),
-            fits.Column(name='E_MAX', format='D', array=ene_hi)]
-    hdu_ebounds = fits.BinTableHDU.from_columns(cols, name='EBOUNDS')
+    cols = [fits.Column(name="CHANNEL", format="J", array=chan),
+            fits.Column(name="E_MIN", format="D", array=ene_lo),
+            fits.Column(name="E_MAX", format="D", array=ene_hi)]
+    hdu_ebounds = fits.BinTableHDU.from_columns(cols, name="EBOUNDS")
     # RMF header following OGIP standards (https://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/caldb_doc.html, CAL/GEN/92-002: "The Calibration Requirements for Spectral Analysis")
-    hdu_ebounds.header['TELESCOP'] = 'CONCAT'
-    hdu_ebounds.header['INSTRUME'] = 'CONCAT'
-    hdu_ebounds.header['CHANTYPE'] = 'PI'
-    hdu_ebounds.header['DETCHANS'] = prob.shape[1]
-    hdu_ebounds.header['HDUCLASS'] = 'OGIP'
-    hdu_ebounds.header['HDUCLAS1'] = 'RESPONSE'
-    hdu_ebounds.header['HDUCLAS2'] = 'EBOUNDS'
-    hdu_ebounds.header['HDUVERS'] = '1.2.0'
+    hdu_ebounds.header["TELESCOP"] = "CONCAT"
+    hdu_ebounds.header["INSTRUME"] = "CONCAT"
+    hdu_ebounds.header["CHANTYPE"] = "PI"
+    hdu_ebounds.header["DETCHANS"] = prob.shape[1]
+    hdu_ebounds.header["HDUCLASS"] = "OGIP"
+    hdu_ebounds.header["HDUCLAS1"] = "RESPONSE"
+    hdu_ebounds.header["HDUCLAS2"] = "EBOUNDS"
+    hdu_ebounds.header["HDUVERS"] = "1.2.0"
     hdu_lst.append(hdu_ebounds)
 
-    hdu_lst.writeto('%s'%(out_name), overwrite=True)
+    hdu_lst.writeto("%s"%(out_name), overwrite=True)
 
     return prob
 
@@ -974,7 +974,7 @@ def concat_rmf(rmffile1,rmffile2,Es,Ee,Ngrid,out_name):
 ################ Concatenating ARFs ################
 #===================================================
 def concat_arf(arffile1,arffile2,Es,Ee,Ngrid,out_name):
-    '''
+    """
     Concatenate two ARFs into a single large ARF.
     
     Parameters
@@ -996,23 +996,23 @@ def concat_arf(arffile1,arffile2,Es,Ee,Ngrid,out_name):
     -------
     specresp : numpy.ndarray
         The output ARF specresp.
-    '''
+    """
     with fits.open(arffile1) as hdu:
-        arf1 = hdu['SPECRESP'].data
-        expo = hdu['SPECRESP'].header['EXPOSURE']
-    arfene1_lo = arf1['ENERG_LO']
-    arfene1_hi = arf1['ENERG_HI']
+        arf1 = hdu["SPECRESP"].data
+        expo = hdu["SPECRESP"].header["EXPOSURE"]
+    arfene1_lo = arf1["ENERG_LO"]
+    arfene1_hi = arf1["ENERG_HI"]
     arfene1_ce = (arfene1_lo + arfene1_hi) / 2
     arfene1_wd = arfene1_hi - arfene1_lo
-    specresp1 = arf1['SPECRESP']
+    specresp1 = arf1["SPECRESP"]
 
     with fits.open(arffile2) as hdu:
-        arf2 = hdu['SPECRESP'].data
-    arfene2_lo = arf2['ENERG_LO']
-    arfene2_hi = arf2['ENERG_HI']
+        arf2 = hdu["SPECRESP"].data
+    arfene2_lo = arf2["ENERG_LO"]
+    arfene2_hi = arf2["ENERG_HI"]
     arfene2_ce = (arfene2_lo + arfene2_hi) / 2
     arfene2_wd = arfene2_hi - arfene2_lo
-    specresp2 = arf2['SPECRESP']
+    specresp2 = arf2["SPECRESP"]
 
     arfenes1 = np.logspace(np.log10(Es),np.log10(np.min(arfene1_lo)),Ngrid) # model energy grid from Es to 1st min model energy of arffile1
     arfene12 = np.logspace(np.log10(np.max(arfene1_hi)),np.log10(np.min(arfene2_lo)),Ngrid) # model energy grid from last max model energy of rmffile1 to 1st min model energy of arffile2
@@ -1034,29 +1034,29 @@ def concat_arf(arffile1,arffile2,Es,Ee,Ngrid,out_name):
     primary_hdu = fits.PrimaryHDU()
     hdu_lst.append(primary_hdu)
 
-    cols = [fits.Column(name='ENERG_LO', format='D', array=arfene_lo),
-            fits.Column(name='ENERG_HI', format='D', array=arfene_hi),
-            fits.Column(name='SPECRESP', format='D', array=specresp)]
-    hdu_specresp = fits.BinTableHDU.from_columns(cols, name='SPECRESP')
-    hdu_specresp.header['TELESCOP'] = 'CONCAT'
-    hdu_specresp.header['INSTRUME'] = 'CONCAT'
-    hdu_specresp.header['CHANTYPE'] = 'PI'
-    hdu_specresp.header['DETCHANS'] = len(specresp)
-    hdu_specresp.header['HDUCLASS'] = 'OGIP'
-    hdu_specresp.header['HDUCLAS1'] = 'RESPONSE'
-    hdu_specresp.header['HDUCLAS2'] = 'SPECRESP'
-    hdu_specresp.header['HDUVERS'] = '1.1.0'
-    hdu_specresp.header['EXPOSURE'] = expo
-    hdu_specresp.header['CREATOR'] = 'XSTACK'
+    cols = [fits.Column(name="ENERG_LO", format="D", array=arfene_lo),
+            fits.Column(name="ENERG_HI", format="D", array=arfene_hi),
+            fits.Column(name="SPECRESP", format="D", array=specresp)]
+    hdu_specresp = fits.BinTableHDU.from_columns(cols, name="SPECRESP")
+    hdu_specresp.header["TELESCOP"] = "CONCAT"
+    hdu_specresp.header["INSTRUME"] = "CONCAT"
+    hdu_specresp.header["CHANTYPE"] = "PI"
+    hdu_specresp.header["DETCHANS"] = len(specresp)
+    hdu_specresp.header["HDUCLASS"] = "OGIP"
+    hdu_specresp.header["HDUCLAS1"] = "RESPONSE"
+    hdu_specresp.header["HDUCLAS2"] = "SPECRESP"
+    hdu_specresp.header["HDUVERS"] = "1.1.0"
+    hdu_specresp.header["EXPOSURE"] = expo
+    hdu_specresp.header["CREATOR"] = "XSTACK"
     hdu_lst.append(hdu_specresp)
 
-    hdu_lst.writeto('%s'%(out_name), overwrite=True)
+    hdu_lst.writeto("%s"%(out_name), overwrite=True)
 
     return specresp
 
 
 def align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob=None):
-    '''
+    """
     The ARF energy bin and RMF energy bin (also the PI channel energy bin) does not always match. Align the ARF
     to get the effective area at each RMF energy bin.
 
@@ -1079,8 +1079,8 @@ def align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob=None):
     -------
     specresp_ali : numpy.ndarray
         The aligned ARF specresp.
-    '''
-    assert ene_lo.shape == ene_hi.shape, ''
+    """
+    assert ene_lo.shape == ene_hi.shape, ""
     
     if prob is None:
         arfene_wd = arfene_hi - arfene_lo
@@ -1106,8 +1106,8 @@ def align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob=None):
         arfene_wd = arfene_hi - arfene_lo
         ene_ce = (ene_lo + ene_hi) / 2
         ene_wd = ene_hi - ene_lo
-        assert prob.shape[0] == len(arfene_ce), ''
-        assert prob.shape[1] == len(ene_ce), ''
+        assert prob.shape[0] == len(arfene_ce), ""
+        assert prob.shape[1] == len(ene_ce), ""
 
         specresp_arfenewd = specresp * arfene_wd
         specresp_arfenewd_ali = np.sum(specresp_arfenewd[:,np.newaxis]*prob,axis=0)
@@ -1120,7 +1120,7 @@ def align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp,prob=None):
 ################# Folding Model ####################
 #===================================================
 def align_model(oarfene_lo,oarfene_hi,omodel,narfene_lo,narfene_hi):
-    '''
+    """
     Original model (defined on oarfene grid) --> New model (defined on narfene grid).
 
     Parameters
@@ -1140,7 +1140,7 @@ def align_model(oarfene_lo,oarfene_hi,omodel,narfene_lo,narfene_hi):
     -------
     nmodel : numpy.ndarray
         Model flux defined on new model energy bin.
-    '''
+    """
     oarfene_wd = oarfene_hi - oarfene_lo
     narfene_wd = narfene_hi - narfene_lo
     nmodel = np.zeros(len(narfene_lo))    # aligned model
@@ -1168,9 +1168,9 @@ def align_model(oarfene_lo,oarfene_hi,omodel,narfene_lo,narfene_hi):
     return nmodel
 
 # def process_entry_fmodel(ext_idx,hdu,modelfile,rmffile,prob,ene_lo,ene_hi,arfene_lo,arfene_hi):
-#     '''
+#     """
 #     Parallel function to be called in `fold_model`.
-#     '''
+#     """
 #     data = hdu[ext_idx].data
 
 #     arfene_ce = (arfene_hi + arfene_lo) / 2
@@ -1178,35 +1178,35 @@ def align_model(oarfene_lo,oarfene_hi,omodel,narfene_lo,narfene_hi):
 #     ene_ce = (ene_lo + ene_hi) / 2
 #     ene_wd = ene_hi - ene_lo
     
-#     oarfene_lo = data['ENERG_LO']
-#     oarfene_hi = data['ENERG_HI']
+#     oarfene_lo = data["ENERG_LO"]
+#     oarfene_hi = data["ENERG_HI"]
 #     oarfene_ce = (oarfene_lo + oarfene_hi) / 2
 #     oarfene_wd = oarfene_hi - oarfene_lo
 
 #     fmodel_lst = [ene_lo,ene_hi]
-#     parname_lst = [colname for colname in data.columns.names if colname not in ['ENERG_LO','ENERG_HI']]
-#     colname_lst = ['E_MIN','E_MAX'] + parname_lst
+#     parname_lst = [colname for colname in data.columns.names if colname not in ["ENERG_LO","ENERG_HI"]]
+#     colname_lst = ["E_MIN","E_MAX"] + parname_lst
 #     for parname in parname_lst:
 #         omodel = data[parname]
 #         model = align_model(oarfene_lo,oarfene_hi,omodel,arfene_lo,arfene_hi)   # model flux based on arfene_ce grid
 #         ctrate = model * arfene_wd
 #         fctrate = np.sum(ctrate[:,np.newaxis]*prob,axis=0)
 #         fmodel_lst.append(fctrate/ene_wd)    # folded model
-#     format_lst = ['D' for _ in range(len(colname_lst))]
-#     unit_lst = ['keV','keV'] + ['cts/s/cm^2/keV' for _ in range(len(fmodel_lst))]
+#     format_lst = ["D" for _ in range(len(colname_lst))]
+#     unit_lst = ["keV","keV"] + ["cts/s/cm^2/keV" for _ in range(len(fmodel_lst))]
 
 #     columns = [fits.Column(name=colname_,format=format_,array=array_,unit=unit_) for colname_,format_,array_,unit_ in zip(colname_lst,format_lst,fmodel_lst,unit_lst)]
 
 #     hdu_data = fits.BinTableHDU.from_columns(columns,name=hdu[ext_idx].name)
-#     hdu_data.header['DESCRIPT'] = 'FOLDED MODEL'
-#     hdu_data.header['MODEFILE'] = modelfile
-#     hdu_data.header['RESPFILE'] = rmffile
-#     hdu_data.header['CREATOR'] = 'XSTACK'
+#     hdu_data.header["DESCRIPT"] = "FOLDED MODEL"
+#     hdu_data.header["MODEFILE"] = modelfile
+#     hdu_data.header["RESPFILE"] = rmffile
+#     hdu_data.header["CREATOR"] = "XSTACK"
 
 #     return hdu_data
 
 def fold_model(modelfile,rmffile,arffile,out_name):
-    '''
+    """
     Fold the input models (erg/cm^2/s/keV, input model energy) through response (ARF+RMF) files (cts/s/keV, output channel energy).
     Different extensions store different models (models should be defined in `modelfile`).
     Different columns store `E_MIN`, `E_MAX`, and flux of different components in a model.
@@ -1227,16 +1227,16 @@ def fold_model(modelfile,rmffile,arffile,out_name):
     Returns
     -------
     None
-    '''
+    """
     with fits.open(rmffile) as hdu:
-        mat = hdu['MATRIX'].data
-        ebo = hdu['EBOUNDS'].data
-    arfene_lo = mat['ENERG_LO']
-    arfene_hi = mat['ENERG_HI']
+        mat = hdu["MATRIX"].data
+        ebo = hdu["EBOUNDS"].data
+    arfene_lo = mat["ENERG_LO"]
+    arfene_hi = mat["ENERG_HI"]
     arfene_ce = (arfene_lo + arfene_hi) / 2
     arfene_wd = arfene_hi - arfene_lo
-    ene_lo = ebo['E_MIN']
-    ene_hi = ebo['E_MAX']
+    ene_lo = ebo["E_MIN"]
+    ene_hi = ebo["E_MAX"]
     ene_ce = (ene_lo + ene_hi) / 2
     ene_wd = ene_hi - ene_lo
     prob = get_prob(mat,ebo)
@@ -1254,8 +1254,8 @@ def fold_model(modelfile,rmffile,arffile,out_name):
             prob[i][0] = 1
 
     with fits.open(arffile) as hdu:
-        arf = hdu['SPECRESP'].data
-    specresp = arf['SPECRESP']
+        arf = hdu["SPECRESP"].data
+    specresp = arf["SPECRESP"]
     specresp_ali = align_arf(ene_lo,ene_hi,arfene_lo,arfene_hi,specresp)
 
     with fits.open(modelfile) as hdu:
@@ -1266,14 +1266,14 @@ def fold_model(modelfile,rmffile,arffile,out_name):
         for ext_idx in range(1,len(hdu)):
             data = hdu[ext_idx].data
             
-            oarfene_lo = data['ENERG_LO']
-            oarfene_hi = data['ENERG_HI']
+            oarfene_lo = data["ENERG_LO"]
+            oarfene_hi = data["ENERG_HI"]
             oarfene_ce = (oarfene_lo + oarfene_hi) / 2
             oarfene_wd = oarfene_hi - oarfene_lo
 
             fmodel_lst = [ene_lo,ene_hi]
-            parname_lst = [colname for colname in data.columns.names if colname not in ['ENERG_LO','ENERG_HI']]
-            colname_lst = ['E_MIN','E_MAX'] + parname_lst
+            parname_lst = [colname for colname in data.columns.names if colname not in ["ENERG_LO","ENERG_HI"]]
+            colname_lst = ["E_MIN","E_MAX"] + parname_lst
             for parname in parname_lst:
                 omodel = data[parname]
                 model = align_model(oarfene_lo,oarfene_hi,omodel,arfene_lo,arfene_hi)   # model flux based on arfene_ce grid
@@ -1284,22 +1284,22 @@ def fold_model(modelfile,rmffile,arffile,out_name):
                 # and both of them could be biased at the energy where the intrinsic spectrum becomes very steep
                 # or the effective area drops drastically (e.g., 0.1-0.3 keV)
                 fmodel_lst.append(fctrate/ene_wd)    # folded model (cts/s/keV)
-            format_lst = ['D' for _ in range(len(colname_lst))]
-            unit_lst = ['keV','keV'] + ['cts/s/keV' for _ in range(len(fmodel_lst))]
+            format_lst = ["D" for _ in range(len(colname_lst))]
+            unit_lst = ["keV","keV"] + ["cts/s/keV" for _ in range(len(fmodel_lst))]
 
             columns = [fits.Column(name=colname_,format=format_,array=array_,unit=unit_) for colname_,format_,array_,unit_ in zip(colname_lst,format_lst,fmodel_lst,unit_lst)]
 
             hdu_data = fits.BinTableHDU.from_columns(columns,name=hdu[ext_idx].name)
-            hdu_data.header['DESCRIPT'] = 'FOLDED MODEL'
-            hdu_data.header['MODEFILE'] = modelfile
-            hdu_data.header['RESPFILE'] = rmffile
-            hdu_data.header['ANCRFILE'] = arffile
-            hdu_data.header['CREATOR'] = 'XSTACK'
+            hdu_data.header["DESCRIPT"] = "FOLDED MODEL"
+            hdu_data.header["MODEFILE"] = modelfile
+            hdu_data.header["RESPFILE"] = rmffile
+            hdu_data.header["ANCRFILE"] = arffile
+            hdu_data.header["CREATOR"] = "XSTACK"
 
             hdu_lst.append(hdu_data)
 
     # write fits file
-    hdu_lst.writeto('%s'%(out_name), overwrite=True)
+    hdu_lst.writeto("%s"%(out_name), overwrite=True)
 
     return
 
@@ -1308,13 +1308,13 @@ def fold_model(modelfile,rmffile,arffile,out_name):
 ##################### XSPEC ########################
 #===================================================
 def pygrppha(src_name,grp_name,grpmin=25):
-    with open('grppha.sh','w') as shell_file:
-        shell_file.writelines('rm -rf %s\n'%(grp_name))
-        shell_file.writelines('(\n')
-        shell_file.writelines('echo %s\n'%(src_name))
-        shell_file.writelines('echo %s\n'%(grp_name))
-        shell_file.writelines('echo group min %d\n'%(grpmin))
-        shell_file.writelines('echo exit\n')
-        shell_file.writelines(') | grppha\n')
+    with open("grppha.sh","w") as shell_file:
+        shell_file.writelines("rm -rf %s\n"%(grp_name))
+        shell_file.writelines("(\n")
+        shell_file.writelines("echo %s\n"%(src_name))
+        shell_file.writelines("echo %s\n"%(grp_name))
+        shell_file.writelines("echo group min %d\n"%(grpmin))
+        shell_file.writelines("echo exit\n")
+        shell_file.writelines(") | grppha\n")
     os.system("bash grppha.sh > grppha.log 2>&1")
     return

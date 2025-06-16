@@ -17,8 +17,9 @@ from tqdm import tqdm
 import gc
 import os
 default_nh_file = os.path.join(os.path.dirname(__file__), "tbabs_1e20.txt")
+version_file = os.path.join(os.path.dirname(__file__), "VERSION")
 
-with open("VERSION") as f:
+with open(version_file) as f:
     lines = f.readlines()
     version = lines[0].strip()
     lastupdate = lines[1].strip()
