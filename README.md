@@ -55,7 +55,7 @@ Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, mo
 
 In either case, <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> requires the following as input:
 
-- the individual source `PI` spectra, with proper headers following OGIP standards; additional redshift file (with `.z` extension) and Galactic nH file (with `.nh` extension) under the same directory as each source `PI` spectrum;
+- individual source `PI` spectra, with proper headers following OGIP standards; additional redshift file (with `.z` extension) and Galactic nH file (with `.nh` extension) under the same directory as each source `PI` spectrum;
   
 - background `PI` spectra (with proper `BACKSCAL` parameters);
   
@@ -65,13 +65,15 @@ In either case, <span style="font-family: 'Courier New', Courier, monospace; fon
 
 The output will be: 
 
-- the stacked source `PI` spectrum;
+- stacked source `PI` spectrum;
 
-- stacked background `PI` spectrum (already scaled);
+- stacked background `BKGPI` spectrum (already scaled);
 
 - stacked `ARF`;
 
-- and stacked `RMF`.
+- stacked `RMF`;
+  
+- and first contributing energy file `FENE`.
 
 ### :one: Command line version
 
@@ -123,11 +125,11 @@ The output will be:
   | Parameters | Description | Default values|
   |---|---|---|
   |`filelist`|text file containing the file names|--|
-  |`prefix`|prefix for output stacked PI, BKGPI, ARF, and RMF files|`./results/stacked_`|
-  |`rsp_weight_method`|method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2)|`SHP`|
-  |`rsp_project_gamma`|prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).|2.0|
-  |`flux_energy_lo`|lower end of the energy range in keV for computing flux|1.0|
-  |`flux_energy_hi`|upper end of the energy range in keV for computing flux|2.3|
+  |`--prefix`|prefix for output stacked PI, BKGPI, ARF, and RMF files|`./results/stacked_`|
+  |`--rsp_weight_method`|method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2)|`SHP`|
+  |`--rsp_project_gamma`|prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response. Defaults to 2.0 (typical for AGN).|2.0|
+  |`--flux_energy_lo`|lower end of the energy range in keV for computing flux|1.0|
+  |`--flux_energy_hi`|upper end of the energy range in keV for computing flux|2.3|
   |`--nthreads`|number of cpus used for non-parametric RMF shifting|10|
   |`--num_bkg_groups`|number of background groups|10|
   |`--ene_trc`|energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)|0.0|
