@@ -1,12 +1,12 @@
 # Xstack
 
-:checkered_flag: **If you are in a hurry, please jump to [this link](#prerequisites-and-installation) for installation, and [this link](#how-to-use-xstack) for basic usage of this code.**
+:checkered_flag: **If you are in a hurry, please jump to [this link](#wrench-prerequisites-and-installation) for installation, and [this link](#ledger-how-to-use-xstack) for basic usage of this code.**
 
 ## :pirate_flag: What is <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> ?
 
 <u><span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is a comprehensive standalone pipeline code for **X-ray spectral (rest-frame) shifting and stacking**.</u>
 
-In the era of eROSITA All Sky X-ray Survey (eRASS), the code should be very useful, if you have a special sample (of point sources) selected in other bands (*infra-red color, optical line/line ratios, variability*, etc), and you would like to see how their **averaged X-ray spectral shape** looks like. You simply download your targets' spectra from [eROSITA archive](https://erosita.mpe.mpg.de/dr1/erodat/data/download/), and <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> them (see [below](#how-to-use-xstack) for examples). 
+In the era of eROSITA All Sky X-ray Survey (eRASS), the code should be very useful, if you have a special sample (of point sources) selected in other bands (*infra-red color, optical line/line ratios, variability*, etc), and you would like to see how their **averaged X-ray spectral shape** looks like. You simply download your targets' spectra from [eROSITA archive](https://erosita.mpe.mpg.de/dr1/erodat/data/download/), and <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> them (see [below](#ledger-how-to-use-xstack) for examples). 
 
 ## :bulb: How <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> works: a very brief introduction
 
