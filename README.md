@@ -1,12 +1,12 @@
 # Xstack
 
-:checkered_flag: **If you are in a hurry, please jump to [this link](https://github.com/AstroChensj/Xstack?tab=readme-ov-file#prerequisites-and-installation) for installation, and [this link](https://github.com/AstroChensj/Xstack?tab=readme-ov-file#how-to-use-xstack) for basic usage of this code.**
+:checkered_flag: **If you are in a hurry, please jump to [this link](#prerequisites-and-installation) for installation, and [this link](#how-to-use-xstack) for basic usage of this code.**
 
 ## :pirate_flag: What is <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> ?
 
 <u><span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is a comprehensive standalone pipeline code for **X-ray spectral (rest-frame) shifting and stacking**.</u>
 
-In the era of eROSITA All Sky X-ray Survey (eRASS), the code should be very useful, if you have a special sample (of point sources) selected in other bands (*infra-red color, optical line/line ratios, variability*, etc), and you would like to see how their **averaged X-ray spectral shape** looks like. You simply download your targets' spectra from [eROSITA archive](https://erosita.mpe.mpg.de/dr1/erodat/data/download/), and <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> them (see [below](https://github.com/AstroChensj/Xstack?tab=readme-ov-file#how-to-use-xstack) for examples). 
+In the era of eROSITA All Sky X-ray Survey (eRASS), the code should be very useful, if you have a special sample (of point sources) selected in other bands (*infra-red color, optical line/line ratios, variability*, etc), and you would like to see how their **averaged X-ray spectral shape** looks like. You simply download your targets' spectra from [eROSITA archive](https://erosita.mpe.mpg.de/dr1/erodat/data/download/), and <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> them (see [below](#how-to-use-xstack) for examples). 
 
 ## :bulb: How <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> works: a very brief introduction
 
@@ -51,7 +51,7 @@ Troubleshooting:
   ```
 
 ## :ledger: How to use <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>
-Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from [**command line**](https://github.com/AstroChensj/Xstack/edit/main/README.md#one-command-line-version), or invoke it as a [**python module**](https://github.com/AstroChensj/Xstack/edit/main/README.md#two-python-module-version). 
+Stacking X-ray spectra with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is simple: you can either call it from [**command line**](#one-command-line-version), or invoke it as a [**python module**](#two-python-module-version). 
 
 In either case, <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> requires the following as input:
 
@@ -222,7 +222,9 @@ The output will be:
 - XSPEC fitting (more details to be added)
 
 
-## :warning: Limitations, and contributions are welcome!
+## :warning: Limitations so far ... and contributions are welcome!
+
+<span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is a great tool for stacking many point source (AGN) spectra, and specifically if you are interested in the average spectral shape. However, we do acknowledge some limitations so far. These are likely out of current scope, but contributions are still welcome!
 
 - **Preserving only spectral **shape**; **normalization** information is lost**
   - Any spectrum contains both **normalization** and **shape** information. For **X-ray** spectral stacking, it is in principle not possible to preserve both. <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> makes effort to preserve the **shape** information (by assigning data-driven response weighting factors); but the **normalization** information is lost. A possible improvement could be, stack the shape and normalization separately, and assign the stacked luminosity back to the stacked spectrum from <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>.
