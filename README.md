@@ -1,4 +1,4 @@
-# Xstack
+# Xstack: X-ray Spectral Stacking
 
 :checkered_flag: **If you are in a hurry, please jump to [this link](#wrench-prerequisites-and-installation) for installation, and [this link](#ledger-how-to-use-xstack) for basic usage of this code.**
 
