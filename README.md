@@ -217,21 +217,21 @@ The output will be:
 
 
 ## :bow_and_arrow: What to do with your stacked spectra
-- Sanity check: from which energy should you use for stacked spectrum analysis (more details to be added)
-- Simple visualization (more details to be added)
+- [Sanity check](https://github.com/AstroChensj/Xstack/blob/main/demo/useful_scripts/valid_energy_range.py): from which energy should you use for stacked spectrum analysis (more details to be added)
+- [Simple visualization](https://github.com/AstroChensj/Xstack/blob/main/demo/useful_scripts/quick_visualization.py): a quick visualization of stacked spectral shape via data/arf plot (more details to be added)
 - XSPEC fitting (more details to be added)
 
 
 ## :warning: Limitations so far ... and contributions are welcome!
 
-<span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is a great tool for stacking many point source (AGN) spectra, and specifically if you are interested in the average spectral shape. However, we do acknowledge some limitations so far. These are likely out of current scope, but contributions are still welcome!
+<span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is a great tool for stacking large number of point source (AGN) spectra, especially when focusing on average spectral shapes. While we acknowledge a few limitations, they are beyond current scope and won't affect the core functionality of the code. That said, contributions are still welcome!
 
 - **Preserving only spectral **shape**; **normalization** information is lost**
-  - Any spectrum contains both **normalization** and **shape** information. For **X-ray** spectral stacking, it is in principle not possible to preserve both. <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> makes effort to preserve the **shape** information (by assigning data-driven response weighting factors); but the **normalization** information is lost. A possible improvement could be, stack the shape and normalization separately, and assign the stacked luminosity back to the stacked spectrum from <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>.
+  - Each spectrum carries both **normalization** and **shape** information. For **X-ray** spectral stacking, it is in principle not possible to preserve both simultaneously, due to the complex response. <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> is designed to preserve the **shape** (by assigning optimized response weighting factors), which necessarily results in the loss of **absolute normalization**. One possible improvement could be to stack the shape (with <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>) and normalization (with e.g., 1.0-2.3 keV image stacking) separately, and then rescale the shape spectrum using the average luminosity/flux computed independently.
 
 - **You can only stack spectra from one instrument for now**
   - <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> assumes all spectra to be stacked share the same energy grids (from RMF). This means that you can only stack spectra from only one instrument (eROSITA or XMM or Chandra or EP...), as different instruments generally have different energy grid settings. Potential improvement could focus on creating a common energy grid for all spectra before shifting and stacking.
  
-## :books: If you find our code useful, please consider citing our work, thank you very much! :smiling_face_with_three_hearts:
+## :books: If you find our code useful, please consider citing our work ... DANKE! :smiling_face_with_three_hearts:
 
 TODO: Add ads bibtex here
