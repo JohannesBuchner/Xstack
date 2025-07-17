@@ -173,6 +173,8 @@ class XstackRunner:
         print(f"Output bkg PI spectrum (base)name: {os.path.join(self.outdir,self.o_bkgpi_name)}")
         print(f"Output ARF (base)name: {os.path.join(self.outdir,self.o_arf_name)}")
         print(f"Output RMF (base)name: {os.path.join(self.outdir,self.o_rmf_name)}")
+        print(f"Output FENE (base)name: {os.path.join(self.outdir,self.o_fene_name)}")
+        print("*******************************************************")
         
         with fits.open(self.sample_rmf) as hdu:
             mat = hdu["MATRIX"].data
@@ -220,6 +222,15 @@ class XstackRunner:
             os.system(f"mv {self.o_pi_name} {self.o_bkgpi_name} {self.o_arf_name} {self.o_rmf_name} {self.o_fene_name} {self.outdir}")
 
         del self.rspmat_sft_lst # to clear memory
+
+        print(f"#### Stacking {len(self.srcid_lst)} completed! ####")
+        print(f"Stacked PI spectrum saved to: {os.path.join(self.outdir,self.o_pi_name)}")
+        print(f"Stacked BKGPI spectrum saved to: {os.path.join(self.outdir,self.o_bkgpi_name)}")
+        print(f"Stacked ARF saved to: {os.path.join(self.outdir,self.o_arf_name)}")
+        print(f"Stacked RMF saved to: {os.path.join(self.outdir,self.o_rmf_name)}")
+        if self.o_fene_name is not None:
+            print(f"Stacked FENE saved to: {os.path.join(self.outdir,self.o_fene_name)}")
+        print(f"# NOTE: the output stacked spectra have {{BACK,AREA,CORR}}SCAL=1, even though the inputs have different ratios. This is because these information have already gone into the background spectrum by scaling it.")
         
         return pi_stk, pierr_stk, bkgpi_stk, bkgpierr_stk, arf_stk, rmf_stk
     

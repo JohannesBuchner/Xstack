@@ -63,10 +63,10 @@ parser = HelpfulParser(description=__doc__,
 
 parser.add_argument("filelist", type=str, help="text file containing the file names")
 parser.add_argument("--prefix", type=str, default="./results/stacked_", help="prefix for output stacked PI, BKGPI, ARF, and RMF files; defaults to './results/stacked_'")
-parser.add_argument("--rsp_weight_method", type=str, default="SHP", help="method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape, 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2); defaults to 'SHP'")
+parser.add_argument("--rsp_weight_method", type=str, default="SHP", help="method to calculate RSP weighting factor for each source; 'SHP': assuming all sources have same spectral shape (only this mode would require flux_energy_lo and flux_energy_hi), 'FLX': assuming all sources have same shape and energy flux (weigh by exposure time), 'LMN': assuming all sources have same shape and luminosity (weigh by exposure/dist^2); defaults to 'SHP'")
 parser.add_argument("--rsp_project_gamma", type=float, default=2.0, help="prior photon index value for projecting RSP matrix onto the output energy channel. This is used in the `SHP` method, to calculate the weight of each response; defaults to 2.0 (typical for AGN).")
-parser.add_argument("--flux_energy_lo", type=float, default=1.0, help="lower end of the energy range in keV for computing flux; defaults to 1.0")
-parser.add_argument("--flux_energy_hi", type=float, default=2.3, help="upper end of the energy range in keV for computing flux; defaults to 2.3")
+parser.add_argument("--flux_energy_lo", type=float, default=1.0, help="lower end of the energy range in keV for computing flux, used only when `rsp_weight_method`=`SHP`; defaults to 1.0")
+parser.add_argument("--flux_energy_hi", type=float, default=2.3, help="upper end of the energy range in keV for computing flux; used only when `rsp_weight_method`=`SHP`; defaults to 2.3")
 parser.add_argument("--nthreads", type=int, default=10, help="number of cpus used for RMF shifting")
 parser.add_argument("--num_bkg_groups", type=int, default=10, help="number of background groups")
 parser.add_argument("--ene_trc", type=float, default=0.0, help="energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)")
@@ -123,6 +123,10 @@ def main():
           args.num_bkg_groups = 1
 
 
+    check_your_output_dir = os.path.join(os.path.dirname(args.prefix),"check_your_output")
+    os.makedirs(check_your_output_dir,exist_ok=True)
+
+
     if args.resample_method == "None":    # no resampling: single stack
         data = Xstack.XstackRunner(
             pifile_lst=pifile_lst,                          # the PI spectrum list
@@ -140,11 +144,9 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
         ).run()
-        print(data)
 
 
     elif args.resample_method == "bootstrap":     # resampling, using bootstrap
@@ -164,14 +166,12 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             resample_method=args.resample_method,           # resample method: `bootstrap` or `KFold`
             num_bootstrap=args.num_bootstrap,               # number of bootstrap experiments in `bootstrap` method
             bootstrap_portion=args.bootstrap_portion,       # portion to resample in `bootstrap` method
             prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
         ).run()
-        print(data)
 
 
     elif args.resample_method == "KFold":     # resampling, using K-Fold
@@ -199,14 +199,12 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             resample_method=args.resample_method,           # resample method: `bootstrap` or `KFold`
             K=args.K,                                       # number of subgroups to divide the original sample into in `KFold` method
             Ksort_lst=Ksort_lst,                            # value list  used to sort the original sample in `KFold` method
             prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
         ).run()
-        print(data)
 
 
     else:
