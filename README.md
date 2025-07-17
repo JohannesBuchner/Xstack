@@ -1,4 +1,4 @@
-# Xstack
+# Xstack: X-ray Spectral Stacking
 
 :checkered_flag: **If you are in a hurry, please jump to [this link](#wrench-prerequisites-and-installation) for installation, and [this link](#ledger-how-to-use-xstack) for basic usage of this code.**
 
@@ -28,7 +28,7 @@ To tackle these issues, we develop **<span style="font-family: 'Courier New', Co
 
 :star_struck: support Galactic absorption correction, if an additional ***nH*** value (in units of 1 $\text{cm}^{-2}$) for each spectrum is given.
 
-You can find in our paper (TODO:arxiv link) more technical details!
+You can find in [our paper](https://arxiv.org/abs/2506.17150) more technical details!
 
 
 ## :wrench: Prerequisites and Installation
@@ -234,4 +234,21 @@ The output will be:
  
 ## :books: If you find our code useful, please consider citing our work ... DANKE! :smiling_face_with_three_hearts:
 
-TODO: Add ads bibtex here
+```latex
+@ARTICLE{2025arXiv250617150C,
+       author = {{Chen}, Shi-Jiang and {Buchner}, Johannes and {Liu}, Teng and {Hagen}, Scott and {Waddell}, Sophia G.~H. and {Nandra}, Kirpal and {Salvato}, Mara and {Igo}, Zsofi and {Aydar}, Catarina and {Merloni}, Andrea and {Ni}, Qingling and {Kang}, Jia-Lai and {Cai}, Zhen-Yi and {Wang}, Jun-Xian and {Li}, Ruancun and {Ramos-Ceja}, Miriam E. and {Sanders}, Jeremy and {Georgakakis}, Antonis and {Zhang}, Yi},
+        title = {The Average Soft X-ray Spectra of eROSITA Active Galactic Nuclei},
+      journal = {arXiv e-prints},
+     keywords = {High Energy Astrophysical Phenomena},
+         year = 2025,
+        month = jun,
+          eid = {arXiv:2506.17150},
+        pages = {arXiv:2506.17150},
+          doi = {10.48550/arXiv.2506.17150},
+archivePrefix = {arXiv},
+       eprint = {2506.17150},
+ primaryClass = {astro-ph.HE},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2025arXiv250617150C},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
