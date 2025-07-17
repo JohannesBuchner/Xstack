@@ -140,7 +140,6 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             prefix=args.prefix,                             # prefix for output stacked PI, BKGPI, ARF, RMF, FENE
         ).run()
@@ -164,7 +163,6 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             resample_method=args.resample_method,           # resample method: `bootstrap` or `KFold`
             num_bootstrap=args.num_bootstrap,               # number of bootstrap experiments in `bootstrap` method
@@ -199,7 +197,6 @@ def main():
             nh_file=nh_file,                                # the Galactic absorption profile (absorption factor vs. energy)
             Nbkggrp=args.num_bkg_groups,                    # the number of background groups to calculate uncertainty of background
             ene_trc=args.ene_trc,                           # energy below which the ARF is manually truncated (e.g., 0.2 keV for eROSITA)
-            rm_ene_dsp=args.rm_ene_dsp,                     # whether or not to remove the energy dispersion map
             nthreads=args.nthreads,                         # number of cpus used for RMF shifting
             resample_method=args.resample_method,           # resample method: `bootstrap` or `KFold`
             K=args.K,                                       # number of subgroups to divide the original sample into in `KFold` method
