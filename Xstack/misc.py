@@ -387,7 +387,7 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
         grpflg = data["GROUPING"]
         assert len(grpflg) == len(src_chan), f"Channel number ({len(src_chan)}) and Grouping flag length ({len(grpflg)}) do not match!"
     else:
-        grpflg = np.ones(len(grpene_ce))
+        grpflg = np.ones(len(ene_ce))
 
     grpene_lo,grpene_hi,grpsrc_coun,grpsrc_counerr = rebin_pi(ene_lo,ene_hi,src_coun,src_counerr,grpflg)
     grpene_lo,grpene_hi,grpbkg_coun,grpbkg_counerr = rebin_pi(ene_lo,ene_hi,bkg_coun,bkg_counerr,grpflg)
@@ -400,10 +400,18 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
     ratio = subtract / grpspecresp / grpene_wd / expo
     ratioerr = subtracterr / grpspecresp / grpene_wd / expo
 
+    ene_ce_norm = 1
     if normalize_at is not None:
-        normalize_idx = np.argmin(abs(grpene_ce-4))
-        ratio = ratio / ratio[normalize_idx]
-        ratioerr = ratioerr / ratio[normalize_idx]
+        if grp_name is not None:
+            normalize_idx = np.argmin(abs(grpene_ce-normalize_at))
+            ene_ce_norm = grpene_ce[normalize_idx]
+            factor_norm = ratio[normalize_idx]
+        else:   # take average
+            normalize_idxs = np.argsort(abs(grpene_ce-normalize_at))[:50]   # TODO: better number than 50?
+            ene_ce_norm = np.median(grpene_ce[normalize_idxs])
+            factor_norm = np.median(ratio[normalize_idxs])
+        ratio = ratio / factor_norm
+        ratioerr = ratioerr / factor_norm
 
     if outname is not None:
         hdu_lst = fits.HDUList()
@@ -424,9 +432,9 @@ def make_dataarf_plot(src_name,bkg_name=None,arf_name=None,rmf_name=None,grp_nam
     if plot:
         if ax is None:
             ax = plt.gca()
-        ax.errorbar(grpene_ce,ratio*grpene_ce**2,yerr=(ratioerr*grpene_ce**2),**kwargs)
+        ax.errorbar(grpene_ce,ratio*grpene_ce**2/ene_ce_norm**2,yerr=(ratioerr*grpene_ce**2/ene_ce_norm**2/2),**kwargs)
 
-    return grpene_lo,grpene_hi,ratio,ratioerr
+    return ax
 
 
 #===================================================
@@ -465,7 +473,112 @@ def fene_fits(srcid_lst,arffene_lst,fene_lst,fits_name):
         hdu_lst.append(hdu_fene)
 
         hdu_lst.writeto("%s"%(fits_name), overwrite=True)
-    return 
+
+    return
+
+
+def valid_energy_range_plot(fene_name,src_name,grp_name,bkg_name,rmf_name,ax=None):
+    """
+    Plot 1) fraction of sources contributing, and 2) fraction of net counts (total-background), as a function of rest-frame energy. These two would facilitate determining a valid energy range for stacked spectrum analysis. Neither the fraction of sources contributing, nor the fraction of net counts can be too low.
+
+    Parameters
+    ----------
+    fene_name : str
+        The name of the fits file containing first contributing energy. Output of Xstack.
+    src_name : str
+        The source spectrum file name.
+    grp_name : str
+        The grouped source spectrum file to be created.
+    bkg_name : str
+        The background spectrum file name.
+    rmf_name : str
+        The RMF file name.
+    ax : matplotlib.axes.Axes, optional
+        The axes to make the plot. If not specified, will use the current axes. Defaults to None.
+
+    Returns
+    -------
+    ax : matplotlib.axes.Axes
+        The axes with the plot.
+    ax_twinx : matplotlib.axes.Axes
+        The twin axes for background fraction plot.
+    
+    """
+    if ax is None:
+        ax = plt.gca()
+    color_left = "red"
+    color_right = "blue"
+
+    # first energy
+    with fits.open(fene_name) as hdu:
+        data = hdu["FENERGY"].data
+    arffene = data["arffene"]
+    fene = data["fene"]
+
+    sorted_arffene = np.sort(arffene)
+    cdf_arffene = np.arange(1,len(sorted_arffene)+1)/len(sorted_arffene)
+    extendene = np.logspace(-1,1,1000)
+    extendcdf_arffene = np.interp(extendene,sorted_arffene,cdf_arffene,left=0,right=1)
+
+    sorted_fene = np.sort(fene)
+    cdf_fene = np.arange(1,len(sorted_fene)+1)/len(sorted_fene)
+    extendene = np.logspace(-1,1,1000)
+    extendcdf_fene = np.interp(extendene,sorted_fene,cdf_fene,left=0,right=1)
+
+    ax.plot(extendene,extendcdf_arffene,ls="-",c=color_left,label="ARF")
+    ax.plot(extendene,extendcdf_fene,ls="--",c=color_left,label="PHA")
+    ax.legend(fontsize=10)
+
+    ax.set_xlabel("Energy (keV)",fontsize=10)
+    ax.tick_params("x",which="major",length=10,width=1.0,size=5,labelsize=8,pad=3)
+    ax.tick_params("x",which="minor",length=10,width=1.0,size=5,labelsize=8,pad=3)
+    ax.set_ylim(0,1.1)
+    ax.set_ylabel("Frac sources",fontsize=10,color=color_left)
+    ax.tick_params("y",which="major",length=10,width=1.0,size=5,labelsize=8,pad=3,labelcolor=color_left)
+    ax.tick_params("y",which="minor",length=10,width=1.0,size=5,labelsize=8,pad=3,labelcolor=color_left)
+
+
+    # net fraction
+    with fits.open(src_name) as hdu:
+        data = hdu["SPECTRUM"].data
+    chan = data["CHANNEL"]
+    pha = data["COUNTS"]
+    phaerr = np.sqrt(pha)
+    with fits.open(bkg_name) as hdu:
+        data = hdu["SPECTRUM"].data
+    chan = data["CHANNEL"]
+    bkgpha = data["COUNTS"]
+    bkgphaerr = np.sqrt(pha)
+    with fits.open(rmf_name) as hdu:
+        mat = hdu["MATRIX"].data
+        ebo = hdu["EBOUNDS"].data
+    ene_lo = ebo["E_MIN"]
+    ene_hi = ebo["E_MAX"]
+    ene_ce = (ene_lo + ene_hi) / 2
+    ene_wd = ene_hi - ene_lo
+
+    eene = np.logspace(np.log10(0.2),np.log10(ene_ce.max()),18)
+    eelo = eene[:-1]
+    eehi = eene[1:]
+    make_grpflg(src_name,grp_name,method="EDGE",rmf_file=rmf_name,eelo=eelo,eehi=eehi)
+    with fits.open(grp_name) as hdu:
+        data = hdu[1].data
+    grpflg = data["GROUPING"]
+    grpene_lo,grpene_hi,grppha,grpphaerr = rebin_pi(ene_lo,ene_hi,pha,phaerr,grpflg)
+    grpene_lo,grpene_hi,grpbkgpha,grpbkgphaerr = rebin_pi(ene_lo,ene_hi,bkgpha,bkgphaerr,grpflg)
+    with np.errstate(invalid='ignore'):
+        grpbkgfrac = grpbkgpha/grppha
+    grpene_wd = grpene_hi - grpene_lo
+    grpene_ce = (grpene_lo + grpene_hi) / 2
+
+    ax_twinx = ax.twinx()
+    ax_twinx.plot(grpene_ce,1-grpbkgfrac,c=color_right)
+    ax_twinx.set_ylim(0,1.1)
+    ax_twinx.set_ylabel("Net/Total counts",fontsize=10,color=color_right)
+    ax_twinx.tick_params("y",which="major",length=10,width=1.0,size=5,labelsize=8,pad=3,labelcolor=color_right)
+    ax_twinx.tick_params("y",which="minor",length=10,width=1.0,size=5,labelsize=8,pad=3,labelcolor=color_right)
+
+    return ax, ax_twinx
 
 
 #===================================================

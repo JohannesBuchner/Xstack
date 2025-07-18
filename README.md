@@ -217,9 +217,14 @@ The output will be:
 
 
 ## :bow_and_arrow: What to do with your stacked spectra
-- [Sanity check](https://github.com/AstroChensj/Xstack/blob/main/demo/useful_scripts/valid_energy_range.py): from which energy should you use for stacked spectrum analysis (more details to be added)
-- [Simple visualization](https://github.com/AstroChensj/Xstack/blob/main/demo/useful_scripts/quick_visualization.py): a quick visualization of stacked spectral shape via data/arf plot (more details to be added)
-- XSPEC fitting (more details to be added)
+
+Please take a look at the `Step 3` of primary example in [`./demo/demo.ipynb`](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb). Basically, you could do the following:
+
+  - Sanity check: from which energy should you use for stacked spectrum analysis
+
+  - Simple visualization: a quick visualization of stacked spectral shape via data/arf plot
+
+  - XSPEC fitting
 
 
 ## :warning: Limitations so far ... and contributions are welcome!
