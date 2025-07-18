@@ -1,6 +1,6 @@
 # Xstack: X-ray Spectral Stacking
 
-:checkered_flag: **If you are in a hurry, please jump to [this link](#wrench-prerequisites-and-installation) for installation, and [this link](#ledger-how-to-use-xstack) for basic usage of this code.**
+:checkered_flag: **If you are in a hurry, please jump to [this link](#wrench-prerequisites-and-installation) for installation, and [this link](#ledger-how-to-use-xstack) for basic usage of this code. [Demo notebook](https://nbviewer.org/github/AstroChensj/Xstack/blob/main/demo/demo.ipynb) gives you a quick walk-through of <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span>.**
 
 ## :pirate_flag: What is <span style="font-family: 'Courier New', Courier, monospace; font-weight: 700;">Xstack</span> ?
 
