@@ -574,13 +574,14 @@ def compute_rspwt(specresp_lst,pi_lst,z_lst,bkgpi_lst,bkgscal_lst,expo_lst,ene_w
     else:
         raise Exception("Available method for ARF scaling ratio calculation: `FLX`, `LMN`, or `SHP` !")
     
-    print("#### The response weighting factor for each source ####")
+    print("****** Response weighting factor for each source ******")
     print("`SHP` mode: assuming all sources have similar spectral shape, and all weights sum to 1 (normalized)")
     print("`FLX` mode: assuming all sources have similar spectral shape + flux, and weights equal to the exposure time")
     print("`LMN` mode: assuming all sources have similar spectral shape + luminosity, and weights equal to expo / distance^2")
     print(f"Below is your response weighting factor list (`{method}` mode):")
     print(rspwt_lst)
-    print("#######################################################")
+    print("Full list can be seen in the `WEIGHT` extension of the output ARF file.")
+    print("*******************************************************")
     
     return rspwt_lst,rspnorm
 

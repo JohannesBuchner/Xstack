@@ -164,7 +164,7 @@ class XstackRunner:
         print(f"NH file: {self.nh_file if self.nh_file is not None else 'None'}")
         print(f"RSP weighting method: {self.rspwt_method}")
         print(f"RSP projection gamma: {self.rspproj_gamma}")
-        print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV")
+        print(f"Flux calculation range: {self.int_rng[0]} -- {self.int_rng[1]} keV (used only in `SHP` mode)")
         print(f"ARF Truncation energy: {self.ene_trc} keV")
         print(f"Number of CPUs used for shifting RMF: {self.nthreads}")
         print(f"Number of background groups: {self.Nbkggrp}")
@@ -187,6 +187,7 @@ class XstackRunner:
         del hdu["MATRIX"].data,hdu["EBOUNDS"].data  # to clear memory
         
         # SHIFTING
+        print("")
         print("******************* Shifting ... **********************")
         ## use backend="loky" to avoid memory leakage
         results = Parallel(n_jobs=self.nthreads,backend="loky")(delayed(self.process_entry)(i) for i in tqdm(range(len(self.srcid_lst))))
@@ -202,6 +203,7 @@ class XstackRunner:
         del results
 
         # STACKING
+        print("")
         print("******************* Stacking ... **********************")
         expo = np.sum(self.expo_lst)
         pi_stk,pierr_stk = add_pi(
@@ -223,8 +225,9 @@ class XstackRunner:
 
         del self.rspmat_sft_lst # to clear memory
 
+        print("")
         print(f"#######################################################")
-        print(f"########### Stacking {len(self.srcid_lst)} spectra completed! ###########")
+        print(f"########## Stacking {len(self.srcid_lst)} spectra completed! ###########")
         print(f"#######################################################")
         print(f"Stacked PI spectrum saved to: {os.path.join(self.outdir,self.o_pi_name)}")
         print(f"Stacked BKGPI spectrum saved to: {os.path.join(self.outdir,self.o_bkgpi_name)}")
@@ -232,8 +235,9 @@ class XstackRunner:
         print(f"Stacked RMF saved to: {os.path.join(self.outdir,self.o_rmf_name)}")
         if self.o_fene_name is not None:
             print(f"Stacked FENE saved to: {os.path.join(self.outdir,self.o_fene_name)}")
-        print(f"")
+        print("")
         print(f"# NOTE: the output stacked spectra have {{BACK,AREA,CORR}}SCAL=1, even though the inputs have different ratios. This is because these information have already gone into the background spectrum by scaling it.")
+        print("")
         
         return pi_stk, pierr_stk, bkgpi_stk, bkgpierr_stk, arf_stk, rmf_stk
     
