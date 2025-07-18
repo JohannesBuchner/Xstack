@@ -1,13 +1,19 @@
 from setuptools import setup, find_packages
+from setuptools.command.build_py import build_py as _build_py
 import os
+import shutil
 
 with open("VERSION") as f:
     lines = f.readlines()
     version = lines[0].strip()
     lastupdate = lines[1].strip()
 
-os.system("cp VERSION ./Xstack/")
-os.system("cp VERSION ./Xstack_scripts/")
+class Copy_VERSION(_build_py):
+    def run(self):
+        for pkg in ["Xstack","Xstack_scripts"]:
+            dst = os.path.join(pkg,"VERSION")
+            shutil.copyfile("VERSION",dst)
+        super().run()
 
 setup(
     name="Xstack",
@@ -23,16 +29,21 @@ setup(
         "numpy",
         "scipy",
         "pandas",
+        "matplotlib",
         "tqdm",
         "numba",
         "sfdmap",
         "joblib",
     ],
-    package_data={"": ["**/tbabs_1e20.txt"],
-                  "Xstack": ["fkspec_sh/*.sh"]},
+    package_data={
+        "": ["**/tbabs_1e20.txt"],
+        "Xstack": ["fkspec_sh/*.sh","VERSION"],
+        "Xstack_scripts": ["VERSION"]
+    },
     entry_points={
         "console_scripts": [
-            "runXstack = Xstack_scripts.Xstack_autoscript:main"
+            "runXstack=Xstack_scripts.Xstack_autoscript:main"
         ]
-    }
+    },
+    cmdclass={'build_py': Copy_VERSION},
 )

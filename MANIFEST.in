@@ -1,3 +1,0 @@
-include VERSION
-include Xstack/VERSION
-include Xstack_scripts/VERSION 
