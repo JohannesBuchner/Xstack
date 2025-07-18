@@ -252,11 +252,13 @@ def add_rsp(rspmat_lst,pi_lst,z_lst,bkgpi_lst=None,bkgscal_lst=None,ene_lo=None,
         hdulist.writeto(f"{outarf_name}", overwrite=True)
 
     # extract RMF
-    sum_prob = sum_rspmat / sum_specresp[:,np.newaxis]
+    with np.errstate(invalid='ignore'): # wrap up division warning
+        sum_prob = sum_rspmat / sum_specresp[:,np.newaxis]
     sum_prob[np.isclose(sum_prob,0,rtol=1e-06, atol=1e-06, equal_nan=False)] = 0 # remove elements with probability below the 1e-6 threshold
     sum_prob[np.isnan(sum_prob)] = 0 # remove NaN
     sum_prob[sum_prob<0] = 0 # remove negative elements
-    sum_prob /= np.sum(sum_prob,axis=1)[:,np.newaxis] # renormalize
+    with np.errstate(invalid='ignore'): # wrap up division warning
+        sum_prob /= np.sum(sum_prob,axis=1)[:,np.newaxis] # renormalize
     sum_prob[np.isnan(sum_prob)] = 0 # remove NaN (produced when 0/0)
     # for the first few input energies, the probability may be empty
     # assign the first channel with 1 (an arbitrary choice)
@@ -572,7 +574,13 @@ def compute_rspwt(specresp_lst,pi_lst,z_lst,bkgpi_lst,bkgscal_lst,expo_lst,ene_w
     else:
         raise Exception("Available method for ARF scaling ratio calculation: `FLX`, `LMN`, or `SHP` !")
     
+    print("#### The response weighting factor for each source ####")
+    print("`SHP` mode: assuming all sources have similar spectral shape, and all weights sum to 1 (normalized)")
+    print("`FLX` mode: assuming all sources have similar spectral shape + flux, and weights equal to the exposure time")
+    print("`LMN` mode: assuming all sources have similar spectral shape + luminosity, and weights equal to expo / distance^2")
+    print(f"Below is your response weighting factor list (`{method}` mode):")
     print(rspwt_lst)
+    print("#######################################################")
     
     return rspwt_lst,rspnorm
 

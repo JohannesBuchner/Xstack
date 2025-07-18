@@ -223,13 +223,16 @@ class XstackRunner:
 
         del self.rspmat_sft_lst # to clear memory
 
-        print(f"#### Stacking {len(self.srcid_lst)} completed! ####")
+        print(f"#######################################################")
+        print(f"########### Stacking {len(self.srcid_lst)} spectra completed! ###########")
+        print(f"#######################################################")
         print(f"Stacked PI spectrum saved to: {os.path.join(self.outdir,self.o_pi_name)}")
         print(f"Stacked BKGPI spectrum saved to: {os.path.join(self.outdir,self.o_bkgpi_name)}")
         print(f"Stacked ARF saved to: {os.path.join(self.outdir,self.o_arf_name)}")
         print(f"Stacked RMF saved to: {os.path.join(self.outdir,self.o_rmf_name)}")
         if self.o_fene_name is not None:
             print(f"Stacked FENE saved to: {os.path.join(self.outdir,self.o_fene_name)}")
+        print(f"")
         print(f"# NOTE: the output stacked spectra have {{BACK,AREA,CORR}}SCAL=1, even though the inputs have different ratios. This is because these information have already gone into the background spectrum by scaling it.")
         
         return pi_stk, pierr_stk, bkgpi_stk, bkgpierr_stk, arf_stk, rmf_stk

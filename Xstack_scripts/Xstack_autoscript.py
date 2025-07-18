@@ -123,10 +123,6 @@ def main():
           args.num_bkg_groups = 1
 
 
-    check_your_output_dir = os.path.join(os.path.dirname(args.prefix),"check_your_output")
-    os.makedirs(check_your_output_dir,exist_ok=True)
-
-
     if args.resample_method == "None":    # no resampling: single stack
         data = Xstack.XstackRunner(
             pifile_lst=pifile_lst,                          # the PI spectrum list
